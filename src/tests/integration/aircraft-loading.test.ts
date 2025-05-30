@@ -5,6 +5,10 @@ import { SRFModelParser } from '@/loaders/SRFModelParser'
 import * as THREE from 'three'
 
 describe('Aircraft Loading Integration Tests', () => {
+  // Helper to check if we're in CI environment where file access may not work
+  const isCI = process.env.CI === 'true'
+  const canAccessFiles = !isCI
+  
   describe('Complete aircraft loading workflow', () => {
     it('should load a complete aircraft with DNM + SRF files', async () => {
       // Test the complete workflow: Load aircraft data file, DNM model, and related SRF files
@@ -12,33 +16,37 @@ describe('Aircraft Loading Integration Tests', () => {
       // 1. Load F-16 data file to understand the aircraft configuration
       const aircraftManager = new AircraftManager()
       
-      try {
-        // Load a well-known aircraft
-        await aircraftManager.loadStandardAircraft()
-        
-        const aircraft = aircraftManager.getAircraft('f16')
-        expect(aircraft).toBeDefined()
-        expect(aircraft!.geometry).toBeDefined()
-        
-        console.log('F-16 aircraft loaded successfully:', {
-          hasGeometry: !!aircraft!.geometry,
-          hasCockpitGeometry: !!aircraft!.cockpitGeometry,
-          hasCollisionGeometry: !!aircraft!.collisionGeometry
-        })
-        
-        // Verify the geometry has reasonable properties
-        const geometry = aircraft!.geometry!
-        expect(geometry.attributes.position).toBeDefined()
-        expect(geometry.attributes.position.count).toBeGreaterThan(0)
-        
-        if (geometry.boundingBox) {
-          expect(geometry.boundingBox.min).toBeDefined()
-          expect(geometry.boundingBox.max).toBeDefined()
+      if (canAccessFiles) {
+        try {
+          // Load a well-known aircraft
+          await aircraftManager.loadStandardAircraft()
+          
+          const aircraft = aircraftManager.getAircraft('f16')
+          expect(aircraft).toBeDefined()
+          expect(aircraft!.geometry).toBeDefined()
+          
+          console.log('F-16 aircraft loaded successfully:', {
+            hasGeometry: !!aircraft!.geometry,
+            hasCockpitGeometry: !!aircraft!.cockpitGeometry,
+            hasCollisionGeometry: !!aircraft!.collisionGeometry
+          })
+          
+          // Verify the geometry has reasonable properties
+          const geometry = aircraft!.geometry!
+          expect(geometry.attributes.position).toBeDefined()
+          expect(geometry.attributes.position.count).toBeGreaterThan(0)
+          
+          if (geometry.boundingBox) {
+            expect(geometry.boundingBox.min).toBeDefined()
+            expect(geometry.boundingBox.max).toBeDefined()
+          }
+          
+        } catch (error) {
+          console.warn('F-16 loading test skipped - aircraft not available:', error)
+          // This is expected if the aircraft files aren't properly configured
         }
-        
-      } catch (error) {
-        console.warn('F-16 loading test skipped - aircraft not available:', error)
-        // This is expected if the aircraft files aren't properly configured
+      } else {
+        console.log('Skipping aircraft file loading test in CI environment')
       }
     })
 
@@ -70,23 +78,28 @@ E`
       expect(dnmGeometry.attributes.position.count).toBeGreaterThan(0)
       
       // Load a real SRF file (F-16 cockpit)
-      try {
-        const srfGeometry = await SRFModelParser.loadGeometryFromUrl('/aircraft/f16cockpit.srf')
-        expect(srfGeometry.attributes.position.count).toBeGreaterThan(0)
-        
-        console.log('DNM + SRF integration successful:', {
-          dnmVertices: dnmGeometry.attributes.position.count,
-          srfVertices: srfGeometry.attributes.position.count,
-          dnmTriangles: dnmGeometry.index ? dnmGeometry.index.count / 3 : 0,
-          srfTriangles: srfGeometry.index ? srfGeometry.index.count / 3 : 0
-        })
-        
-        // Both geometries should be valid Three.js BufferGeometry instances
-        expect(dnmGeometry).toBeInstanceOf(THREE.BufferGeometry)
-        expect(srfGeometry).toBeInstanceOf(THREE.BufferGeometry)
-        
-      } catch (error) {
-        console.warn('SRF integration test skipped - file not available:', error)
+      // Skip file loading tests if not in development environment
+      if (canAccessFiles) {
+        try {
+          const srfGeometry = await SRFModelParser.loadGeometryFromUrl('/aircraft/f16cockpit.srf')
+          expect(srfGeometry.attributes.position.count).toBeGreaterThan(0)
+          
+          console.log('DNM + SRF integration successful:', {
+            dnmVertices: dnmGeometry.attributes.position.count,
+            srfVertices: srfGeometry.attributes.position.count,
+            dnmTriangles: dnmGeometry.index ? dnmGeometry.index.count / 3 : 0,
+            srfTriangles: srfGeometry.index ? srfGeometry.index.count / 3 : 0
+          })
+          
+          // Both geometries should be valid Three.js BufferGeometry instances
+          expect(dnmGeometry).toBeInstanceOf(THREE.BufferGeometry)
+          expect(srfGeometry).toBeInstanceOf(THREE.BufferGeometry)
+          
+        } catch (error) {
+          console.warn('SRF integration test skipped - file not available:', error)
+        }
+      } else {
+        console.log('Skipping SRF file loading test in CI environment')
       }
     })
 
@@ -142,24 +155,32 @@ V 1.0 1.0 0.0`
       console.log('✅ DNM Parser: Simplified parsing working')
       
       // 2. SRF Parser (real files)
-      try {
-        const srfGeometry = await SRFModelParser.loadGeometryFromUrl('/aircraft/f16cockpit.srf')
-        expect(srfGeometry.attributes.position.count).toBeGreaterThan(0)
-        console.log('✅ SRF Parser: Real file loading working')
-      } catch (error) {
-        console.log('⚠️  SRF Parser: File loading not available in test environment')
+      if (canAccessFiles) {
+        try {
+          const srfGeometry = await SRFModelParser.loadGeometryFromUrl('/aircraft/f16cockpit.srf')
+          expect(srfGeometry.attributes.position.count).toBeGreaterThan(0)
+          console.log('✅ SRF Parser: Real file loading working')
+        } catch (error) {
+          console.log('⚠️  SRF Parser: File loading not available in test environment')
+        }
+      } else {
+        console.log('⚠️  SRF Parser: File loading skipped in CI environment')
       }
       
       // 3. Aircraft Manager Integration
       const aircraftManager = new AircraftManager()
       
-      try {
-        await aircraftManager.loadStandardAircraft()
-        const allAircraft = aircraftManager.getAllAircraft()
-        expect(allAircraft.length).toBeGreaterThan(0)
-        console.log(`✅ Aircraft Manager: ${allAircraft.length} aircraft definitions loaded`)
-      } catch (error) {
-        console.log('⚠️  Aircraft Manager: Standard aircraft loading not available in test environment')
+      if (canAccessFiles) {
+        try {
+          await aircraftManager.loadStandardAircraft()
+          const allAircraft = aircraftManager.getAllAircraft()
+          expect(allAircraft.length).toBeGreaterThan(0)
+          console.log(`✅ Aircraft Manager: ${allAircraft.length} aircraft definitions loaded`)
+        } catch (error) {
+          console.log('⚠️  Aircraft Manager: Standard aircraft loading not available in test environment')
+        }
+      } else {
+        console.log('⚠️  Aircraft Manager: Aircraft loading skipped in CI environment')
       }
       
       console.log('=== Phase 1 MVP Status: READY ===')
