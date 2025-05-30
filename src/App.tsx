@@ -3,6 +3,7 @@ import { loadWasmModule } from './utils/wasm-loader'
 import { WasmTest } from './components/WasmTest'
 import { FlightSimulator } from './components/FlightSimulator'
 import { FlightSimulation } from './components/FlightSimulation'
+import { VisualModelTest } from './components/VisualModelTest'
 import './App.css'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
   } | null>(null)
   const [showTests, setShowTests] = useState(false)
   const [showRenderer, setShowRenderer] = useState(false)
+  const [showModelTest, setShowModelTest] = useState(false)
 
   useEffect(() => {
     const initializeWasm = async () => {
@@ -94,6 +96,7 @@ function App() {
           onClick={() => setShowRenderer(!showRenderer)}
           style={{
             padding: '10px 20px',
+            marginRight: '10px',
             backgroundColor: '#2196F3',
             color: 'white',
             border: 'none',
@@ -102,6 +105,19 @@ function App() {
           }}
         >
           {showRenderer ? 'Hide' : 'Show'} Basic Renderer
+        </button>
+        <button 
+          onClick={() => setShowModelTest(!showModelTest)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#9C27B0',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {showModelTest ? 'Hide' : 'Show'} Model Test
         </button>
       </div>
       
@@ -114,10 +130,26 @@ function App() {
         </div>
       )}
       
-      <div style={{ margin: '40px 0' }}>
-        <h2>Flight Simulation</h2>
-        <FlightSimulation />
-      </div>
+      {showModelTest && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          zIndex: 1000,
+          backgroundColor: 'white'
+        }}>
+          <VisualModelTest />
+        </div>
+      )}
+      
+      {!showModelTest && (
+        <div style={{ margin: '40px 0' }}>
+          <h2>Flight Simulation</h2>
+          <FlightSimulation />
+        </div>
+      )}
     </div>
   )
 }
