@@ -429,6 +429,35 @@ export class SRFModelParser {
   static async loadFromUrl(url: string): Promise<SRFModel> {
     console.log(`Loading SRF file: ${url}`)
     
+    // Handle relative URLs in Node.js environment (Vitest test environment)
+    const isNodeEnvironment = typeof window === 'undefined' || typeof process !== 'undefined'
+    
+    if (isNodeEnvironment && url.startsWith('/')) {
+      try {
+        // In Node.js environment, convert relative path to file path
+        // This assumes the public directory is served from the project root
+        const path = await import('path')
+        const fs = await import('fs')
+        const projectRoot = process.cwd()
+        const filePath = path.join(projectRoot, 'public', url.slice(1))
+        
+        console.log(`Node.js environment detected, reading file directly: ${filePath}`)
+        
+        // Check if file exists before trying to read it
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`SRF file not found: ${filePath}`)
+        }
+        
+        // Read file directly in Node.js
+        const content = fs.readFileSync(filePath, 'utf-8')
+        return this.parse(content)
+      } catch (error) {
+        // If file reading fails, fall back to fetch (might be in a different test environment)
+        console.warn('Direct file reading failed, falling back to fetch:', error)
+      }
+    }
+    
+    // Browser environment or absolute URL - use fetch
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`Failed to load SRF file: ${response.status} ${response.statusText}`)
