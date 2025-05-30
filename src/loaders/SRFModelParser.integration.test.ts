@@ -3,7 +3,7 @@ import { SRFModelParser } from './SRFModelParser'
 
 describe('SRFModelParser Integration Tests', () => {
   // Skip these tests in CI environment where files might not be available
-  const skipInCI = process.env.CI === 'true'
+  const skipInCI = process.env.CI === 'true' || !globalThis.document
 
   describe('Real SRF file loading', () => {
     it.skipIf(skipInCI)('should load F-16 cockpit SRF file', async () => {

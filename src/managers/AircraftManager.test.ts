@@ -149,14 +149,19 @@ E`
         modelFile: 'test.dnm'
       })
 
-      const mesh = manager.createAircraftMesh(asset)
+      const aircraftGroup = manager.createAircraftMesh(asset)
 
-      expect(mesh).toBeInstanceOf(THREE.Mesh)
-      expect(mesh.castShadow).toBe(true)
-      expect(mesh.receiveShadow).toBe(true)
+      expect(aircraftGroup).toBeInstanceOf(THREE.Group)
+      expect(aircraftGroup.children.length).toBeGreaterThan(0)
+      
+      // Check main mesh
+      const mainMesh = aircraftGroup.children.find(child => child.name === 'main-body') as THREE.Mesh
+      expect(mainMesh).toBeInstanceOf(THREE.Mesh)
+      expect(mainMesh.castShadow).toBe(true)
+      expect(mainMesh.receiveShadow).toBe(true)
 
       // Check Z coordinate negation
-      const positions = (mesh.geometry as THREE.BufferGeometry).attributes.position.array
+      const positions = (mainMesh.geometry as THREE.BufferGeometry).attributes.position.array
       expect(positions[2]).toBe(-10.0) // Z negated
       expect(positions[5]).toBe(-10.0)
       expect(positions[8]).toBe(-10.0)
@@ -174,11 +179,16 @@ E`
         modelFile: 'empty.dnm'
       })
 
-      const mesh = manager.createAircraftMesh(asset)
+      const aircraftGroup = manager.createAircraftMesh(asset)
 
-      expect(mesh).toBeInstanceOf(THREE.Mesh)
-      expect(mesh.geometry).toBeInstanceOf(THREE.ConeGeometry)
-      expect(mesh.children).toHaveLength(2) // Wings and tail
+      expect(aircraftGroup).toBeInstanceOf(THREE.Group)
+      expect(aircraftGroup.children.length).toBeGreaterThan(0)
+      
+      // Should contain fallback mesh
+      const fallbackMesh = aircraftGroup.children[0] as THREE.Mesh
+      expect(fallbackMesh).toBeInstanceOf(THREE.Mesh)
+      expect(fallbackMesh.geometry).toBeInstanceOf(THREE.ConeGeometry)
+      expect(fallbackMesh.children).toHaveLength(2) // Wings and tail
     })
 
     it('should scale aircraft based on type', async () => {
