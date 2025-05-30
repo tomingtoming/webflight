@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { loadWasmModule } from './utils/wasm-loader'
 import { WasmTest } from './components/WasmTest'
 import { FlightSimulator } from './components/FlightSimulator'
+import { FlightSimulation } from './components/FlightSimulation'
 import './App.css'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
     buildInfo: string;
   } | null>(null)
   const [showTests, setShowTests] = useState(false)
+  const [showRenderer, setShowRenderer] = useState(false)
 
   useEffect(() => {
     const initializeWasm = async () => {
@@ -88,13 +90,33 @@ function App() {
         >
           {showTests ? 'Hide' : 'Show'} WASM Tests
         </button>
+        <button 
+          onClick={() => setShowRenderer(!showRenderer)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {showRenderer ? 'Hide' : 'Show'} Basic Renderer
+        </button>
       </div>
       
       {showTests && <WasmTest />}
       
+      {showRenderer && (
+        <div style={{ margin: '40px 0' }}>
+          <h2>WebGL Renderer Test</h2>
+          <FlightSimulator onReady={() => console.log('Renderer initialized')} />
+        </div>
+      )}
+      
       <div style={{ margin: '40px 0' }}>
-        <h2>WebGL Renderer Test</h2>
-        <FlightSimulator onReady={() => console.log('Renderer initialized')} />
+        <h2>Flight Simulation</h2>
+        <FlightSimulation />
       </div>
     </div>
   )

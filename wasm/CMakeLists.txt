@@ -49,6 +49,8 @@ set(SOURCES
     src/bindings.cpp
     src/math_utils.cpp
     src/test_module.cpp
+    src/simulation.cpp
+    src/simulation_bindings.cpp
 )
 
 # Create executable

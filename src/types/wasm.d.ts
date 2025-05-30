@@ -42,6 +42,46 @@ export interface SystemInfo {
   };
 }
 
+export interface AircraftState {
+  position: { x: number; y: number; z: number };
+  velocity: { x: number; y: number; z: number };
+  heading: number;
+  pitch: number;
+  roll: number;
+  headingRate: number;
+  pitchRate: number;
+  rollRate: number;
+  throttle: number;
+  thrust: number;
+  aileron: number;
+  elevator: number;
+  rudder: number;
+  altitude: number;
+  airspeed: number;
+  mass: number;
+  fuel: number;
+}
+
+export interface AircraftProperties {
+  name: string;
+  emptyMass: number;
+  maxFuel: number;
+  wingArea: number;
+  wingSpan: number;
+  maxThrust: number;
+}
+
+export interface FlightSimulation {
+  initialize(x: number, y: number, z: number, heading: number): void;
+  setAircraftType(type: string): void;
+  setThrottle(throttle: number): void;
+  setControlSurfaces(aileron: number, elevator: number, rudder: number): void;
+  update(deltaTime: number): void;
+  getState(): AircraftState;
+  getProperties(): AircraftProperties;
+  reset(): void;
+}
+
 export interface YSFlightCore {
   // Factory functions
   Vector3: {
@@ -57,6 +97,10 @@ export interface YSFlightCore {
   
   TestModule: {
     new(name: string): TestModule;
+  };
+  
+  FlightSimulation: {
+    new(): FlightSimulation;
   };
   
   // Global functions
