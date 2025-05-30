@@ -219,13 +219,14 @@ export class AircraftDataParser {
           data.outsideRadius = this.parseDistance(value)
           break
           
-        case 'HRDPOINT':
+        case 'HRDPOINT': {
           const hardpoint = {
             position: this.parsePosition(parts.slice(1, 4)),
             allowedWeapons: parts.slice(4)
           }
           data.hardpoints!.push(hardpoint)
           break
+        }
       }
     }
     

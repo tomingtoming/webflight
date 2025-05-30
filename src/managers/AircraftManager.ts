@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { AircraftData, AircraftDataParser } from '@/loaders/AircraftDataParser'
-import { DNMModel, DNMModelParser } from '@/loaders/DNMModelParser'
+import { DNMModelParser } from '@/loaders/DNMModelParser'
 import { AircraftListParser, AircraftListEntry } from '@/loaders/AircraftListParser'
 
 export interface AircraftAsset {
@@ -71,8 +71,9 @@ export class AircraftManager {
     // Parse aircraft data
     const data = AircraftDataParser.parse(dataContent)
     
-    // Parse model
-    const model = DNMModelParser.parse(modelContent)
+    // Parse model (now async to support SRF loading)
+    const modelPath = `/aircraft/${definition.modelFile}`
+    const model = await DNMModelParser.parse(modelContent, modelPath)
     const geometry = DNMModelParser.toThreeJS(model)
     
     console.log(`Loaded aircraft ${id}:`, {
@@ -101,7 +102,8 @@ export class AircraftManager {
     if (definition.collisionFile) {
       try {
         const collisionContent = await this.loadFile(definition.collisionFile)
-        const collisionModel = DNMModelParser.parse(collisionContent)
+        const collisionPath = `/aircraft/${definition.collisionFile}`
+        const collisionModel = await DNMModelParser.parse(collisionContent, collisionPath)
         asset.collisionGeometry = DNMModelParser.toThreeJS(collisionModel)
       } catch (error) {
         console.warn(`Failed to load collision model for ${id}:`, error)
@@ -111,7 +113,8 @@ export class AircraftManager {
     if (definition.cockpitFile) {
       try {
         const cockpitContent = await this.loadFile(definition.cockpitFile)
-        const cockpitModel = DNMModelParser.parse(cockpitContent)
+        const cockpitPath = `/aircraft/${definition.cockpitFile}`
+        const cockpitModel = await DNMModelParser.parse(cockpitContent, cockpitPath)
         asset.cockpitGeometry = DNMModelParser.toThreeJS(cockpitModel)
       } catch (error) {
         console.warn(`Failed to load cockpit model for ${id}:`, error)
@@ -121,7 +124,8 @@ export class AircraftManager {
     if (definition.lodFile) {
       try {
         const lodContent = await this.loadFile(definition.lodFile)
-        const lodModel = DNMModelParser.parse(lodContent)
+        const lodPath = `/aircraft/${definition.lodFile}`
+        const lodModel = await DNMModelParser.parse(lodContent, lodPath)
         asset.lodGeometry = DNMModelParser.toThreeJS(lodModel)
       } catch (error) {
         console.warn(`Failed to load LOD model for ${id}:`, error)
@@ -169,27 +173,50 @@ export class AircraftManager {
     const geometry = useLOD && asset.lodGeometry ? asset.lodGeometry : asset.geometry
     
     // Check if geometry has vertices
-    if (geometry.attributes.position.count === 0) {
+    if (!geometry.attributes.position || geometry.attributes.position.count === 0) {
       console.warn(`No vertices in geometry for ${asset.id}, using fallback`)
       return this.createFallbackMesh()
     }
     
-    const mesh = new THREE.Mesh(geometry, asset.material)
+    // Clone the geometry to avoid modifying the cached version
+    const meshGeometry = geometry.clone()
+    
+    // Create mesh with the material
+    const mesh = new THREE.Mesh(meshGeometry, asset.material.clone())
     mesh.castShadow = true
     mesh.receiveShadow = true
     
-    // Apply any necessary transformations based on aircraft data
-    // YSFlight uses a different coordinate system, so we might need to rotate
-    mesh.rotation.y = Math.PI // Face forward
+    // YSFlight coordinate system conversion:
+    // YSFlight: X=right, Y=up, Z=forward
+    // Three.js: X=right, Y=up, Z=backward
+    // So we need to negate Z coordinates
+    const positions = meshGeometry.attributes.position.array
+    for (let i = 2; i < positions.length; i += 3) {
+      positions[i] = -positions[i] // Negate Z
+    }
+    meshGeometry.attributes.position.needsUpdate = true
     
-    // Scale the mesh based on bounding box (some models may be too small/large)
-    geometry.computeBoundingBox()
-    const box = geometry.boundingBox!
+    // Recompute normals after coordinate transformation
+    meshGeometry.computeVertexNormals()
+    meshGeometry.computeBoundingBox()
+    meshGeometry.computeBoundingSphere()
+    
+    // Scale the mesh based on bounding box
+    const box = meshGeometry.boundingBox!
     const size = new THREE.Vector3()
     box.getSize(size)
     const maxDimension = Math.max(size.x, size.y, size.z)
-    if (maxDimension > 100 || maxDimension < 1) {
-      const scale = 20 / maxDimension // Target size of ~20 units
+    
+    // Different aircraft types need different scales
+    let targetSize = 15 // Default size
+    if (asset.id.includes('cessna') || asset.id.includes('archer')) {
+      targetSize = 10 // Smaller for general aviation
+    } else if (asset.id.includes('b747') || asset.id.includes('b777')) {
+      targetSize = 30 // Larger for airliners
+    }
+    
+    if (maxDimension > 0) {
+      const scale = targetSize / maxDimension
       mesh.scale.setScalar(scale)
     }
     

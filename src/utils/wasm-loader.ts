@@ -22,7 +22,7 @@ export async function loadWasmModule(): Promise<YSFlightCore> {
   }
   
   // Start initialization
-  initPromise = new Promise<YSFlightCore>(async (resolve, reject) => {
+  initPromise = (async () => {
     try {
       // Load the script dynamically
       const script = document.createElement('script');
@@ -54,12 +54,12 @@ export async function loadWasmModule(): Promise<YSFlightCore> {
       });
       
       wasmModule = module;
-      resolve(module);
+      return module;
     } catch (error) {
       console.error('Failed to load WASM module:', error);
-      reject(error);
+      throw error;
     }
-  });
+  })();
   
   return initPromise;
 }

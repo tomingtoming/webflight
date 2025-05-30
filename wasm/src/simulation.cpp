@@ -147,20 +147,46 @@ void FlightDynamics::update(float deltaTime) {
     // Calculate moments and angular rates (simplified)
     Vec3 moments = calculateMoments();
     
-    // Update angular velocities (simplified - no proper moment of inertia)
-    state.rollRate = moments.x * 0.001f;
-    state.pitchRate = moments.y * 0.001f;
-    state.headingRate = moments.z * 0.001f;
+    // Update angular velocities with proper inertia approximation
+    // Using simplified moment of inertia values
+    const float Ixx = state.mass * props.wingSpan * props.wingSpan * 0.1f;  // Roll inertia
+    const float Iyy = state.mass * props.wingSpan * props.wingSpan * 0.2f;  // Pitch inertia
+    const float Izz = state.mass * props.wingSpan * props.wingSpan * 0.3f;  // Yaw inertia
     
-    // Update orientation
+    // Angular accelerations
+    float rollAccel = moments.x / Ixx;
+    float pitchAccel = moments.y / Iyy;
+    float yawAccel = moments.z / Izz;
+    
+    // Update angular velocities
+    state.rollRate += rollAccel * deltaTime;
+    state.pitchRate += pitchAccel * deltaTime;
+    state.headingRate += yawAccel * deltaTime;
+    
+    // Limit angular rates
+    const float maxRollRate = 5.0f;  // rad/s
+    const float maxPitchRate = 3.0f; // rad/s
+    const float maxYawRate = 2.0f;   // rad/s
+    
+    state.rollRate = std::max(-maxRollRate, std::min(maxRollRate, state.rollRate));
+    state.pitchRate = std::max(-maxPitchRate, std::min(maxPitchRate, state.pitchRate));
+    state.headingRate = std::max(-maxYawRate, std::min(maxYawRate, state.headingRate));
+    
+    // Update orientation using proper Euler angle integration
     state.roll += state.rollRate * deltaTime;
     state.pitch += state.pitchRate * deltaTime;
     state.heading += state.headingRate * deltaTime;
     
-    // Limit angles
-    state.roll = std::fmod(state.roll, 2.0f * static_cast<float>(M_PI));
-    state.pitch = std::max(-static_cast<float>(M_PI)/2.0f, std::min(static_cast<float>(M_PI)/2.0f, state.pitch));
-    state.heading = std::fmod(state.heading, 2.0f * static_cast<float>(M_PI));
+    // Normalize angles
+    while (state.roll > M_PI) state.roll -= 2.0f * M_PI;
+    while (state.roll < -M_PI) state.roll += 2.0f * M_PI;
+    
+    // Limit pitch to prevent gimbal lock
+    state.pitch = std::max(static_cast<float>(-M_PI * 0.45f), 
+                          std::min(static_cast<float>(M_PI * 0.45f), state.pitch));
+    
+    while (state.heading > M_PI) state.heading -= 2.0f * M_PI;
+    while (state.heading < -M_PI) state.heading += 2.0f * M_PI;
 }
 
 float FlightDynamics::getAirDensity(float altitude) const {
@@ -177,35 +203,134 @@ Vec3 FlightDynamics::calculateAerodynamicForces() const {
     float q = getDynamicPressure();
     float S = props.wingArea;
     
-    // Simplified aerodynamics
-    // Angle of attack (simplified)
-    float alpha = state.pitch; // Very simplified!
+    // Calculate angle of attack (alpha) properly
+    // This is the angle between the velocity vector and the aircraft's x-axis
+    float velocityMagnitude = state.velocity.length();
+    float alpha = 0.0f;
     
-    // Lift
+    if (velocityMagnitude > 0.1f) {
+        // Calculate velocity in body frame
+        Vec3 velocityNormalized = state.velocity.normalized();
+        
+        // Simple approximation: alpha = arctan(Vz/Vx) in body frame
+        // For now, using a simplified calculation
+        float horizontalSpeed = std::sqrt(state.velocity.x * state.velocity.x + 
+                                         state.velocity.z * state.velocity.z);
+        if (horizontalSpeed > 0.1f) {
+            alpha = std::atan2(-state.velocity.y, horizontalSpeed) + state.pitch;
+        }
+    }
+    
+    // Limit angle of attack to critical values
+    alpha = std::max(props.criticalAOANegative, std::min(props.criticalAOAPositive, alpha));
+    
+    // Calculate lift coefficient
     float Cl = props.Cl0 + props.ClAlpha * alpha;
-    Cl = std::min(Cl, props.ClMax);
+    
+    // Stall modeling
+    if (alpha > props.criticalAOAPositive * 0.8f) {
+        // Post-stall reduction
+        float stallFactor = 1.0f - (alpha - props.criticalAOAPositive * 0.8f) / 
+                           (props.criticalAOAPositive * 0.2f);
+        Cl *= std::max(0.3f, stallFactor);
+    }
+    
+    Cl = std::max(-props.ClMax, std::min(props.ClMax, Cl));
     float lift = q * S * Cl;
     
-    // Drag
+    // Calculate drag coefficient
     float Cd = props.Cd0 + props.K * Cl * Cl;
+    
+    // Add speed-dependent drag
+    if (state.airspeed > props.maxSpeed * 0.8f) {
+        float speedFactor = (state.airspeed - props.maxSpeed * 0.8f) / 
+                           (props.maxSpeed * 0.2f);
+        Cd += speedFactor * 0.1f; // Additional drag near max speed
+    }
+    
     float drag = q * S * Cd;
     
-    // Transform to world coordinates (simplified)
-    Vec3 liftVector(0, lift, 0);
-    Vec3 dragVector(-drag * std::cos(state.heading), 0, -drag * std::sin(state.heading));
+    // Side force from rudder
+    float sideForce = q * S * state.rudder * props.rudderEffect * 0.2f;
     
-    return liftVector + dragVector;
+    // Transform forces to world coordinates
+    // Lift acts perpendicular to velocity vector
+    // Drag acts opposite to velocity vector
+    Vec3 liftVector(0, 0, 0);
+    Vec3 dragVector(0, 0, 0);
+    Vec3 sideVector(0, 0, 0);
+    
+    if (velocityMagnitude > 0.1f) {
+        // Velocity direction
+        Vec3 velocityDir = state.velocity.normalized();
+        
+        // Calculate lift direction (perpendicular to velocity, in the pitch plane)
+        Vec3 liftDir(
+            -velocityDir.y * std::cos(state.heading),
+            velocityDir.x * std::cos(state.heading) + velocityDir.z * std::sin(state.heading),
+            -velocityDir.y * std::sin(state.heading)
+        );
+        liftDir = liftDir.normalized();
+        
+        liftVector = liftDir * lift;
+        dragVector = velocityDir * (-drag);
+        
+        // Side force (simplified)
+        sideVector = Vec3(
+            -sideForce * std::sin(state.heading),
+            0,
+            sideForce * std::cos(state.heading)
+        );
+    }
+    
+    return liftVector + dragVector + sideVector;
 }
 
 Vec3 FlightDynamics::calculateMoments() const {
     float q = getDynamicPressure();
     
-    // Simplified moment calculations
-    float rollMoment = q * props.wingArea * props.wingSpan * state.aileron * props.aileronEffect;
-    float pitchMoment = q * props.wingArea * props.wingSpan * state.elevator * props.elevatorEffect;
-    float yawMoment = q * props.wingArea * props.wingSpan * state.rudder * props.rudderEffect;
+    // More realistic moment calculations
+    float S = props.wingArea;
+    float b = props.wingSpan;
+    float c = S / b; // Mean aerodynamic chord
     
-    return Vec3(rollMoment, pitchMoment, yawMoment);
+    // Roll moment from ailerons
+    float rollMoment = q * S * b * state.aileron * props.aileronEffect;
+    
+    // Add roll damping
+    rollMoment -= q * S * b * b * state.rollRate * 0.1f;
+    
+    // Add adverse yaw from ailerons
+    float adverseYaw = -state.aileron * props.aileronEffect * 0.2f;
+    
+    // Pitch moment from elevator
+    float pitchMoment = q * S * c * state.elevator * props.elevatorEffect;
+    
+    // Add pitch damping
+    pitchMoment -= q * S * c * c * state.pitchRate * 0.2f;
+    
+    // Add speed stability (nose-down tendency at high speed)
+    if (state.airspeed > props.maxSpeed * 0.7f) {
+        float speedFactor = (state.airspeed - props.maxSpeed * 0.7f) / 
+                           (props.maxSpeed * 0.3f);
+        pitchMoment -= q * S * c * speedFactor * 0.1f;
+    }
+    
+    // Yaw moment from rudder
+    float yawMoment = q * S * b * state.rudder * props.rudderEffect;
+    
+    // Add yaw damping
+    yawMoment -= q * S * b * b * state.headingRate * 0.15f;
+    
+    // Add adverse yaw
+    yawMoment += q * S * b * adverseYaw;
+    
+    // Scale moments for more realistic response
+    const float momentScale = 0.001f; // Adjust based on aircraft inertia
+    
+    return Vec3(rollMoment * momentScale, 
+                pitchMoment * momentScale, 
+                yawMoment * momentScale);
 }
 
 void FlightDynamics::reset() {

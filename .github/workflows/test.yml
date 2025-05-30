@@ -1,0 +1,84 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: webflight/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd webflight
+        npm ci
+        
+    - name: Run type check
+      run: |
+        cd webflight
+        npm run typecheck
+        
+    - name: Run linter
+      run: |
+        cd webflight
+        npm run lint
+        
+    - name: Run tests
+      run: |
+        cd webflight
+        npm test -- --run
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      if: matrix.node-version == '20.x'
+      with:
+        directory: ./webflight/coverage
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: webflight/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd webflight
+        npm ci
+        
+    - name: Build project
+      run: |
+        cd webflight
+        npm run build
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-files
+        path: webflight/dist/

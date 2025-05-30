@@ -83,7 +83,7 @@ export function FlightSimulation() {
     
     const updateInterval = setInterval(() => {
       setControls(prevControls => {
-        let newControls = { ...prevControls }
+        const newControls = { ...prevControls }
         
         // Throttle
         if (keyboardState.throttleUp) {

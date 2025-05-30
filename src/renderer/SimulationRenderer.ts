@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { WebGLRenderer } from './WebGLRenderer'
 import { CameraManager, CameraView } from './CameraManager'
-import { AircraftManager, AircraftAsset } from '@/managers/AircraftManager'
+import { AircraftManager } from '@/managers/AircraftManager'
 import type { YSFlightCore } from '@/types/wasm'
 
 export interface Aircraft {

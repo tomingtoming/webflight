@@ -1,5 +1,10 @@
 # WebFlight
 
+[![Tests](https://github.com/tomingtoming/webflight/actions/workflows/test.yml/badge.svg)](https://github.com/tomingtoming/webflight/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/license-YSFlight-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![WebAssembly](https://img.shields.io/badge/WebAssembly-C++-orange.svg)](https://webassembly.org/)
+
 YS Flight Simulator web version using WebAssembly and modern web technologies.
 
 ## Overview
