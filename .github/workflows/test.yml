@@ -22,33 +22,24 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: webflight/package-lock.json
         
     - name: Install dependencies
-      run: |
-        cd webflight
-        npm ci
+      run: npm ci
         
     - name: Run type check
-      run: |
-        cd webflight
-        npm run typecheck
+      run: npm run typecheck
         
     - name: Run linter
-      run: |
-        cd webflight
-        npm run lint
+      run: npm run lint
         
     - name: Run tests
-      run: |
-        cd webflight
-        npm test -- --run
+      run: npm test -- --run
         
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       if: matrix.node-version == '20.x'
       with:
-        directory: ./webflight/coverage
+        directory: ./coverage
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
@@ -65,20 +56,15 @@ jobs:
       with:
         node-version: 20.x
         cache: 'npm'
-        cache-dependency-path: webflight/package-lock.json
         
     - name: Install dependencies
-      run: |
-        cd webflight
-        npm ci
+      run: npm ci
         
     - name: Build project
-      run: |
-        cd webflight
-        npm run build
+      run: npm run build
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-files
-        path: webflight/dist/
+        path: dist/
