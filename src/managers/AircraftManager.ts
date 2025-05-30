@@ -158,6 +158,30 @@ export class AircraftManager {
   
   private async loadFile(filename: string): Promise<string> {
     const url = this.basePath + filename
+    
+    // Handle relative URLs in Node.js environment (similar to SRFModelParser)
+    const isNodeEnvironment = typeof window === 'undefined' || typeof process !== 'undefined'
+    
+    if (isNodeEnvironment && url.startsWith('/')) {
+      try {
+        // In Node.js environment, read file directly
+        const path = await import('path')
+        const fs = await import('fs')
+        const projectRoot = process.cwd()
+        const filePath = path.join(projectRoot, 'public', url.slice(1))
+        
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`File not found: ${filePath}`)
+        }
+        
+        return fs.readFileSync(filePath, 'utf-8')
+      } catch (error) {
+        // Fall back to fetch if file reading fails
+        console.warn(`Direct file reading failed for ${filename}, falling back to fetch:`, error)
+      }
+    }
+    
+    // Browser environment or fallback - use fetch
     const response = await fetch(url)
     
     if (!response.ok) {
