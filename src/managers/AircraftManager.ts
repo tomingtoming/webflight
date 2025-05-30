@@ -72,9 +72,8 @@ export class AircraftManager {
     // Parse aircraft data
     const data = AircraftDataParser.parse(dataContent)
     
-    // Parse model (now async to support SRF loading)
-    const modelPath = `/aircraft/${definition.modelFile}`
-    const model = await DNMModelParser.parse(modelContent, modelPath)
+    // Parse model (simplified parser, no longer needs model path)
+    const model = DNMModelParser.parse(modelContent)
     const geometry = DNMModelParser.toThreeJS(model)
     
     console.log(`Loaded aircraft ${id}:`, {
@@ -110,8 +109,7 @@ export class AircraftManager {
         } else {
           // Use DNM parser for DNM files
           const collisionContent = await this.loadFile(definition.collisionFile)
-          const collisionPath = `/aircraft/${definition.collisionFile}`
-          const collisionModel = await DNMModelParser.parse(collisionContent, collisionPath)
+          const collisionModel = DNMModelParser.parse(collisionContent)
           asset.collisionGeometry = DNMModelParser.toThreeJS(collisionModel)
         }
       } catch (error) {
@@ -129,8 +127,7 @@ export class AircraftManager {
         } else {
           // Use DNM parser for DNM files
           const cockpitContent = await this.loadFile(definition.cockpitFile)
-          const cockpitPath = `/aircraft/${definition.cockpitFile}`
-          const cockpitModel = await DNMModelParser.parse(cockpitContent, cockpitPath)
+          const cockpitModel = DNMModelParser.parse(cockpitContent)
           asset.cockpitGeometry = DNMModelParser.toThreeJS(cockpitModel)
         }
       } catch (error) {
@@ -148,8 +145,7 @@ export class AircraftManager {
         } else {
           // Use DNM parser for DNM files
           const lodContent = await this.loadFile(definition.lodFile)
-          const lodPath = `/aircraft/${definition.lodFile}`
-          const lodModel = await DNMModelParser.parse(lodContent, lodPath)
+          const lodModel = DNMModelParser.parse(lodContent)
           asset.lodGeometry = DNMModelParser.toThreeJS(lodModel)
         }
       } catch (error) {
