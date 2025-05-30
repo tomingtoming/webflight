@@ -8,6 +8,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/tests/setup.ts',
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/wasm/emsdk/**',
+      '**/wasm/build/**',
+      '.{idea,git,cache,output,temp}/**',
+    ],
   },
   resolve: {
     alias: {

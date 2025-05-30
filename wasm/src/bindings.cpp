@@ -1,4 +1,6 @@
+#include <emscripten.h>
 #include <emscripten/bind.h>
+#include <emscripten/version.h>
 #include <string>
 
 using namespace emscripten;
@@ -25,8 +27,12 @@ val getSystemInfo() {
     
     // Memory info
     val memory = val::object();
-    memory.set("heapSize", val(EM_ASM_INT(return HEAP8.length)));
-    memory.set("stackSize", val(EM_ASM_INT(return STACK_MAX)));
+    // Get heap size using EM_ASM
+    int heapSize = EM_ASM_INT({
+        return HEAP8.length;
+    });
+    memory.set("heapSize", val(heapSize));
+    memory.set("stackSize", val(65536)); // Default stack size
     info.set("memory", memory);
     
     return info;

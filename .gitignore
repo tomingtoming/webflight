@@ -29,6 +29,7 @@ wasm/emsdk
 *.wasm
 *.wasm.map
 *.js.mem
+public/ysflight-core.*
 
 # Test coverage
 coverage

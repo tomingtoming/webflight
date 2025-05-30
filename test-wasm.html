@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WASM Test</title>
+</head>
+<body>
+    <h1>WebAssembly Module Test</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        async function testWasm() {
+            const output = document.getElementById('output');
+            
+            try {
+                output.innerHTML += '<p>Loading WASM module...</p>';
+                
+                const moduleLoader = await import('/ysflight-core.js');
+                const YSFlightCore = await moduleLoader.default({
+                    locateFile: (path) => {
+                        if (path.endsWith('.wasm')) {
+                            return '/ysflight-core.wasm';
+                        }
+                        return path;
+                    }
+                });
+                
+                output.innerHTML += '<p>✅ WASM module loaded successfully!</p>';
+                
+                // Test basic functions
+                const version = YSFlightCore.getVersion();
+                const buildInfo = YSFlightCore.getBuildInfo();
+                const systemInfo = YSFlightCore.getSystemInfo();
+                
+                output.innerHTML += `<p>Version: ${version}</p>`;
+                output.innerHTML += `<p>Build Info: ${buildInfo}</p>`;
+                output.innerHTML += `<p>System Info: ${JSON.stringify(systemInfo, null, 2)}</p>`;
+                
+                // Test Vector3
+                const v1 = new YSFlightCore.Vector3(1, 2, 3);
+                const v2 = new YSFlightCore.Vector3(4, 5, 6);
+                const v3 = v1.add(v2);
+                
+                output.innerHTML += `<p>Vector3 test: (${v1.x}, ${v1.y}, ${v1.z}) + (${v2.x}, ${v2.y}, ${v2.z}) = (${v3.x}, ${v3.y}, ${v3.z})</p>`;
+                
+                // Test math functions
+                const rad = YSFlightCore.degToRad(180);
+                output.innerHTML += `<p>Math test: 180° = ${rad} radians</p>`;
+                
+                // Test TestModule
+                const testModule = new YSFlightCore.TestModule('WebFlight Test');
+                output.innerHTML += `<p>TestModule name: ${testModule.getName()}</p>`;
+                output.innerHTML += `<p>Counter: ${testModule.getCounter()}</p>`;
+                testModule.incrementCounter();
+                output.innerHTML += `<p>Counter after increment: ${testModule.getCounter()}</p>`;
+                
+            } catch (error) {
+                output.innerHTML += `<p style="color: red;">❌ Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        testWasm();
+    </script>
+</body>
+</html>

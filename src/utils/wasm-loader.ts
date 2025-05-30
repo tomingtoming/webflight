@@ -1,10 +1,6 @@
 import type { YSFlightCore } from '@/types/wasm'
 
-// Declare the module loader function
-declare function YSFlightCore(config?: {
-  locateFile?: (path: string) => string;
-  onRuntimeInitialized?: () => void;
-}): Promise<YSFlightCore>;
+// Module will be loaded dynamically
 
 let wasmModule: YSFlightCore | null = null;
 let initPromise: Promise<YSFlightCore> | null = null;
