@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { AircraftData, AircraftDataParser } from '@/loaders/AircraftDataParser'
 import { DNMModelParser } from '@/loaders/DNMModelParser'
+import { SRFModelParser } from '@/loaders/SRFModelParser'
 import { AircraftListParser, AircraftListEntry } from '@/loaders/AircraftListParser'
 
 export interface AircraftAsset {
@@ -101,10 +102,18 @@ export class AircraftManager {
     // Load optional files if provided
     if (definition.collisionFile) {
       try {
-        const collisionContent = await this.loadFile(definition.collisionFile)
-        const collisionPath = `/aircraft/${definition.collisionFile}`
-        const collisionModel = await DNMModelParser.parse(collisionContent, collisionPath)
-        asset.collisionGeometry = DNMModelParser.toThreeJS(collisionModel)
+        if (definition.collisionFile.endsWith('.srf')) {
+          // Use SRF parser for SRF files
+          const collisionUrl = `/aircraft/${definition.collisionFile}`
+          asset.collisionGeometry = await SRFModelParser.loadGeometryFromUrl(collisionUrl)
+          console.log(`Loaded collision SRF for ${id}: ${definition.collisionFile}`)
+        } else {
+          // Use DNM parser for DNM files
+          const collisionContent = await this.loadFile(definition.collisionFile)
+          const collisionPath = `/aircraft/${definition.collisionFile}`
+          const collisionModel = await DNMModelParser.parse(collisionContent, collisionPath)
+          asset.collisionGeometry = DNMModelParser.toThreeJS(collisionModel)
+        }
       } catch (error) {
         console.warn(`Failed to load collision model for ${id}:`, error)
       }
@@ -112,10 +121,18 @@ export class AircraftManager {
     
     if (definition.cockpitFile) {
       try {
-        const cockpitContent = await this.loadFile(definition.cockpitFile)
-        const cockpitPath = `/aircraft/${definition.cockpitFile}`
-        const cockpitModel = await DNMModelParser.parse(cockpitContent, cockpitPath)
-        asset.cockpitGeometry = DNMModelParser.toThreeJS(cockpitModel)
+        if (definition.cockpitFile.endsWith('.srf')) {
+          // Use SRF parser for SRF files
+          const cockpitUrl = `/aircraft/${definition.cockpitFile}`
+          asset.cockpitGeometry = await SRFModelParser.loadGeometryFromUrl(cockpitUrl)
+          console.log(`Loaded cockpit SRF for ${id}: ${definition.cockpitFile}`)
+        } else {
+          // Use DNM parser for DNM files
+          const cockpitContent = await this.loadFile(definition.cockpitFile)
+          const cockpitPath = `/aircraft/${definition.cockpitFile}`
+          const cockpitModel = await DNMModelParser.parse(cockpitContent, cockpitPath)
+          asset.cockpitGeometry = DNMModelParser.toThreeJS(cockpitModel)
+        }
       } catch (error) {
         console.warn(`Failed to load cockpit model for ${id}:`, error)
       }
@@ -123,10 +140,18 @@ export class AircraftManager {
     
     if (definition.lodFile) {
       try {
-        const lodContent = await this.loadFile(definition.lodFile)
-        const lodPath = `/aircraft/${definition.lodFile}`
-        const lodModel = await DNMModelParser.parse(lodContent, lodPath)
-        asset.lodGeometry = DNMModelParser.toThreeJS(lodModel)
+        if (definition.lodFile.endsWith('.srf')) {
+          // Use SRF parser for SRF files
+          const lodUrl = `/aircraft/${definition.lodFile}`
+          asset.lodGeometry = await SRFModelParser.loadGeometryFromUrl(lodUrl)
+          console.log(`Loaded LOD SRF for ${id}: ${definition.lodFile}`)
+        } else {
+          // Use DNM parser for DNM files
+          const lodContent = await this.loadFile(definition.lodFile)
+          const lodPath = `/aircraft/${definition.lodFile}`
+          const lodModel = await DNMModelParser.parse(lodContent, lodPath)
+          asset.lodGeometry = DNMModelParser.toThreeJS(lodModel)
+        }
       } catch (error) {
         console.warn(`Failed to load LOD model for ${id}:`, error)
       }
@@ -169,58 +194,135 @@ export class AircraftManager {
   }
   
   // Create a Three.js mesh from an aircraft asset
-  createAircraftMesh(asset: AircraftAsset, useLOD: boolean = false): THREE.Mesh {
+  createAircraftMesh(asset: AircraftAsset, useLOD: boolean = false, options: {
+    showCockpit?: boolean,
+    showCollision?: boolean,
+    wireframe?: boolean
+  } = {}): THREE.Group {
+    const aircraftGroup = new THREE.Group()
+    aircraftGroup.name = `aircraft-${asset.id}`
+    
+    // Create main mesh
     const geometry = useLOD && asset.lodGeometry ? asset.lodGeometry : asset.geometry
     
     // Check if geometry has vertices
     if (!geometry.attributes.position || geometry.attributes.position.count === 0) {
       console.warn(`No vertices in geometry for ${asset.id}, using fallback`)
-      return this.createFallbackMesh()
+      const fallbackMesh = this.createFallbackMesh()
+      aircraftGroup.add(fallbackMesh)
+      return aircraftGroup
     }
     
     // Clone the geometry to avoid modifying the cached version
     const meshGeometry = geometry.clone()
     
-    // Create mesh with the material
-    const mesh = new THREE.Mesh(meshGeometry, asset.material.clone())
-    mesh.castShadow = true
-    mesh.receiveShadow = true
+    // Apply coordinate system transformation
+    this.applyCoordinateTransform(meshGeometry)
     
-    // YSFlight coordinate system conversion:
+    // Create main mesh
+    const material = asset.material.clone() as THREE.MeshStandardMaterial
+    if (options.wireframe) {
+      material.wireframe = true
+    }
+    
+    const mainMesh = new THREE.Mesh(meshGeometry, material)
+    mainMesh.castShadow = true
+    mainMesh.receiveShadow = true
+    mainMesh.name = 'main-body'
+    
+    // Scale the entire group
+    this.applyAircraftScale(aircraftGroup, meshGeometry, asset.id)
+    
+    aircraftGroup.add(mainMesh)
+    
+    // Add cockpit mesh if available and requested
+    if (options.showCockpit && asset.cockpitGeometry) {
+      const cockpitGeometry = asset.cockpitGeometry.clone()
+      this.applyCoordinateTransform(cockpitGeometry)
+      
+      const cockpitMaterial = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        metalness: 0.3,
+        roughness: 0.7,
+        transparent: true,
+        opacity: 0.9
+      })
+      
+      const cockpitMesh = new THREE.Mesh(cockpitGeometry, cockpitMaterial)
+      cockpitMesh.name = 'cockpit'
+      aircraftGroup.add(cockpitMesh)
+      
+      console.log(`Added cockpit mesh for ${asset.id}`)
+    }
+    
+    // Add collision mesh if available and requested
+    if (options.showCollision && asset.collisionGeometry) {
+      const collisionGeometry = asset.collisionGeometry.clone()
+      this.applyCoordinateTransform(collisionGeometry)
+      
+      const collisionMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3
+      })
+      
+      const collisionMesh = new THREE.Mesh(collisionGeometry, collisionMaterial)
+      collisionMesh.name = 'collision'
+      aircraftGroup.add(collisionMesh)
+      
+      console.log(`Added collision mesh for ${asset.id}`)
+    }
+    
+    return aircraftGroup
+  }
+  
+  /**
+   * Apply YSFlight to Three.js coordinate system transformation
+   */
+  private applyCoordinateTransform(geometry: THREE.BufferGeometry): void {
     // YSFlight: X=right, Y=up, Z=forward
     // Three.js: X=right, Y=up, Z=backward
     // So we need to negate Z coordinates
-    const positions = meshGeometry.attributes.position.array
+    const positions = geometry.attributes.position.array as Float32Array
     for (let i = 2; i < positions.length; i += 3) {
       positions[i] = -positions[i] // Negate Z
     }
-    meshGeometry.attributes.position.needsUpdate = true
+    geometry.attributes.position.needsUpdate = true
     
     // Recompute normals after coordinate transformation
-    meshGeometry.computeVertexNormals()
-    meshGeometry.computeBoundingBox()
-    meshGeometry.computeBoundingSphere()
-    
-    // Scale the mesh based on bounding box
-    const box = meshGeometry.boundingBox!
+    geometry.computeVertexNormals()
+    geometry.computeBoundingBox()
+    geometry.computeBoundingSphere()
+  }
+  
+  /**
+   * Apply appropriate scaling to aircraft based on type and size
+   */
+  private applyAircraftScale(group: THREE.Group, geometry: THREE.BufferGeometry, aircraftId: string): void {
+    const box = geometry.boundingBox!
     const size = new THREE.Vector3()
     box.getSize(size)
     const maxDimension = Math.max(size.x, size.y, size.z)
     
     // Different aircraft types need different scales
     let targetSize = 15 // Default size
-    if (asset.id.includes('cessna') || asset.id.includes('archer')) {
+    if (aircraftId.includes('cessna') || aircraftId.includes('archer')) {
       targetSize = 10 // Smaller for general aviation
-    } else if (asset.id.includes('b747') || asset.id.includes('b777')) {
+    } else if (aircraftId.includes('b747') || aircraftId.includes('b777')) {
       targetSize = 30 // Larger for airliners
+    } else if (aircraftId.includes('f16') || aircraftId.includes('f18')) {
+      targetSize = 12 // Fighter jets
+    } else if (aircraftId.includes('a10')) {
+      targetSize = 14 // Attack aircraft
+    } else if (aircraftId.includes('p51')) {
+      targetSize = 9 // WWII fighters
     }
     
     if (maxDimension > 0) {
       const scale = targetSize / maxDimension
-      mesh.scale.setScalar(scale)
+      group.scale.setScalar(scale)
     }
-    
-    return mesh
   }
   
   private createFallbackMesh(): THREE.Mesh {
@@ -284,25 +386,47 @@ export class AircraftManager {
         }
       },
       {
-        id: 'b747',
+        id: 'a10',
         definition: {
-          dataFile: 'b747.dat',
-          modelFile: 'b747.dnm',
-          collisionFile: 'b747coll.srf',
-          cockpitFile: 'b747cockpit.srf',
-          lodFile: 'b747coarse.dnm'
+          dataFile: 'a10.dat',
+          modelFile: 'a10.dnm',
+          collisionFile: 'a10coll.srf',
+          cockpitFile: 'a10cockpit.srf',
+          lodFile: 'a10coarse.dnm'
+        }
+      },
+      {
+        id: 'f18',
+        definition: {
+          dataFile: 'f18.dat',
+          modelFile: 'f18.dnm',
+          collisionFile: 'f18coll.srf',
+          cockpitFile: 'f18cockpit.srf',
+          lodFile: 'f18_coarse.dnm'
+        }
+      },
+      {
+        id: 'p51',
+        definition: {
+          dataFile: 'p51.dat',
+          modelFile: 'p51.dnm',
+          collisionFile: 'p51coll.srf',
+          cockpitFile: 'p51cockpit.srf',
+          lodFile: 'p51coarse.dnm'
         }
       }
     ]
     
-    // Load all aircraft in parallel
-    await Promise.all(
-      standardAircraft.map(({ id, definition }) => 
-        this.loadAircraft(id, definition).catch(error => {
-          console.error(`Failed to load aircraft ${id}:`, error)
-        })
-      )
-    )
+    // Load aircraft sequentially to avoid overwhelming the system
+    for (const { id, definition } of standardAircraft) {
+      try {
+        console.log(`Loading aircraft: ${id}`)
+        await this.loadAircraft(id, definition)
+        console.log(`Successfully loaded aircraft: ${id}`)
+      } catch (error) {
+        console.error(`Failed to load aircraft ${id}:`, error)
+      }
+    }
   }
   
   // Load all aircraft from aircraft.lst
