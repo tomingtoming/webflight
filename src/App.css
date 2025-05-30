@@ -5,6 +5,11 @@
   text-align: center;
 }
 
+.app h2 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
 .loading-container,
 .error-container {
   display: flex;

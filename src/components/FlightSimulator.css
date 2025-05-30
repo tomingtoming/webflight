@@ -1,0 +1,99 @@
+.flight-simulator {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.flight-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.flight-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 200px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 5px;
+}
+
+.control-group {
+  margin: 10px 0;
+}
+
+.control-group label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.control-group input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.control-group button {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.control-group button:hover {
+  background-color: #45a049;
+}
+
+.control-info {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 14px;
+}
+
+.control-info p {
+  margin: 5px 0;
+  font-family: monospace;
+}
+
+.control-instructions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-instructions h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.control-instructions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+}
+
+.control-instructions li {
+  margin: 5px 0;
+  padding-left: 20px;
+}
