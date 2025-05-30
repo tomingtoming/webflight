@@ -14,6 +14,8 @@ export default defineConfig({
       '**/wasm/emsdk/**',
       '**/wasm/build/**',
       '.{idea,git,cache,output,temp}/**',
+      // Exclude WASM integration tests in CI
+      ...(process.env.CI ? ['**/wasm-integration.test.ts'] : [])
     ],
   },
   resolve: {

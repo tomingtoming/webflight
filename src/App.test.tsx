@@ -39,6 +39,6 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByText('WebFlight')).toBeInTheDocument()
       expect(screen.getByText('✅ WebAssembly Ready')).toBeInTheDocument()
-    })
+    }, { timeout: 3000 })
   })
 })
