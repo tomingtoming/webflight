@@ -67,6 +67,20 @@ public:
         dynamics.setControlSurfaces(aileron, elevator, rudder);
     }
     
+    void setAircraftProperties(
+        float emptyMass, float maxFuel, float wingArea,
+        float maxThrust, float thrustMilitary,
+        float critAOAPos, float critAOANeg,
+        float minManeuverSpeed, float maxSpeed
+    ) {
+        dynamics.setAircraftProperties(
+            emptyMass, maxFuel, wingArea,
+            maxThrust, thrustMilitary,
+            critAOAPos, critAOANeg,
+            minManeuverSpeed, maxSpeed
+        );
+    }
+    
     void update(float deltaTime) {
         dynamics.update(deltaTime);
     }
@@ -142,6 +156,7 @@ EMSCRIPTEN_BINDINGS(simulation_bindings) {
         .function("setAircraftType", &SimulationWrapper::setAircraftType)
         .function("setThrottle", &SimulationWrapper::setThrottle)
         .function("setControlSurfaces", &SimulationWrapper::setControlSurfaces)
+        .function("setAircraftProperties", &SimulationWrapper::setAircraftProperties)
         .function("update", &SimulationWrapper::update)
         .function("getState", &SimulationWrapper::getState)
         .function("getProperties", &SimulationWrapper::getProperties)

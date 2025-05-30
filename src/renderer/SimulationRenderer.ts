@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { WebGLRenderer } from './WebGLRenderer'
 import { CameraManager, CameraView } from './CameraManager'
+import { AircraftManager, AircraftAsset } from '@/managers/AircraftManager'
 import type { YSFlightCore } from '@/types/wasm'
 
 export interface Aircraft {
@@ -16,6 +17,7 @@ export class SimulationRenderer extends WebGLRenderer {
   private aircraft: Map<string, Aircraft> = new Map()
   private terrain?: THREE.Mesh
   private cameraManager: CameraManager
+  private aircraftManager: AircraftManager
   
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, {
@@ -25,14 +27,46 @@ export class SimulationRenderer extends WebGLRenderer {
     })
     
     this.cameraManager = new CameraManager(this.getCamera())
+    this.aircraftManager = new AircraftManager('/aircraft/')
   }
   
   public setWasmModule(_wasm: YSFlightCore): void {
     // this.wasm = wasm // Will be used later
   }
   
-  public addAircraft(id: string, position: THREE.Vector3): Aircraft {
-    // Create simple aircraft geometry for now
+  public async addAircraft(id: string, position: THREE.Vector3, aircraftType?: string): Promise<Aircraft> {
+    let mesh: THREE.Mesh
+    
+    // Try to use loaded aircraft model if available
+    if (aircraftType) {
+      const asset = this.aircraftManager.getAircraft(aircraftType)
+      if (asset) {
+        mesh = this.aircraftManager.createAircraftMesh(asset)
+      } else {
+        // Fall back to simple geometry
+        mesh = this.createSimpleAircraftMesh()
+      }
+    } else {
+      mesh = this.createSimpleAircraftMesh()
+    }
+    
+    mesh.position.copy(position)
+    this.getScene().add(mesh)
+    
+    const aircraft: Aircraft = {
+      id,
+      position: position.clone(),
+      rotation: new THREE.Euler(),
+      velocity: new THREE.Vector3(),
+      mesh
+    }
+    
+    this.aircraft.set(id, aircraft)
+    return aircraft
+  }
+  
+  private createSimpleAircraftMesh(): THREE.Mesh {
+    // Create simple aircraft geometry as fallback
     const geometry = new THREE.ConeGeometry(2, 10, 8)
     geometry.rotateX(Math.PI / 2)
     
@@ -43,7 +77,6 @@ export class SimulationRenderer extends WebGLRenderer {
     })
     
     const mesh = new THREE.Mesh(geometry, material)
-    mesh.position.copy(position)
     mesh.castShadow = true
     mesh.receiveShadow = true
     
@@ -71,18 +104,7 @@ export class SimulationRenderer extends WebGLRenderer {
     tail.castShadow = true
     mesh.add(tail)
     
-    this.getScene().add(mesh)
-    
-    const aircraft: Aircraft = {
-      id,
-      position: position.clone(),
-      rotation: new THREE.Euler(),
-      velocity: new THREE.Vector3(),
-      mesh
-    }
-    
-    this.aircraft.set(id, aircraft)
-    return aircraft
+    return mesh
   }
   
   public removeAircraft(id: string): void {
@@ -164,6 +186,10 @@ export class SimulationRenderer extends WebGLRenderer {
   
   public getCurrentCameraView(): CameraView {
     return this.cameraManager.getCurrentView()
+  }
+  
+  public getAircraftManager(): AircraftManager {
+    return this.aircraftManager
   }
   
   public getAircraft(id: string): Aircraft | undefined {

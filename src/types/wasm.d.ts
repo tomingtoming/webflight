@@ -76,6 +76,12 @@ export interface FlightSimulation {
   setAircraftType(type: string): void;
   setThrottle(throttle: number): void;
   setControlSurfaces(aileron: number, elevator: number, rudder: number): void;
+  setAircraftProperties(
+    emptyMass: number, maxFuel: number, wingArea: number,
+    maxThrust: number, thrustMilitary: number,
+    critAOAPos: number, critAOANeg: number,
+    minManeuverSpeed: number, maxSpeed: number
+  ): void;
   update(deltaTime: number): void;
   getState(): AircraftState;
   getProperties(): AircraftProperties;

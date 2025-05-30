@@ -93,6 +93,13 @@ struct AircraftProperties {
     float elevatorEffect;
     float rudderEffect;
     
+    // Additional properties from YSFlight data
+    float thrustMilitary;      // Military power thrust (N)
+    float criticalAOAPositive; // Critical angle of attack positive (rad)
+    float criticalAOANegative; // Critical angle of attack negative (rad)
+    float minManeuverableSpeed; // Minimum maneuverable speed (m/s)
+    float maxSpeed;            // Maximum speed (m/s)
+    
     AircraftProperties();
     void setF16Properties(); // Default F-16 properties
 };
@@ -118,6 +125,14 @@ public:
     // Control inputs
     void setThrottle(float throttle);
     void setControlSurfaces(float aileron, float elevator, float rudder);
+    
+    // Set aircraft properties from loaded data
+    void setAircraftProperties(
+        float emptyMass, float maxFuel, float wingArea,
+        float maxThrust, float thrustMilitary,
+        float critAOAPos, float critAOANeg,
+        float minManeuverSpeed, float maxSpeed
+    );
     
     // Update simulation
     void update(float deltaTime);

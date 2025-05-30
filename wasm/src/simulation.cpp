@@ -41,6 +41,13 @@ void AircraftProperties::setF16Properties() {
     aileronEffect = 0.5f;
     elevatorEffect = 0.4f;
     rudderEffect = 0.3f;
+    
+    // Additional properties
+    thrustMilitary = 76000.0f;  // Newtons (military power)
+    criticalAOAPositive = 0.384f; // ~22 degrees
+    criticalAOANegative = -0.262f; // ~-15 degrees
+    minManeuverableSpeed = 20.0f; // ~40 knots
+    maxSpeed = 686.0f; // ~2.0 Mach at sea level
 }
 
 // FlightDynamics implementation
@@ -62,6 +69,30 @@ void FlightDynamics::setAircraftType(const std::string& type) {
         props.setF16Properties();
     }
     // Add more aircraft types as needed
+}
+
+void FlightDynamics::setAircraftProperties(
+    float emptyMass, float maxFuel, float wingArea,
+    float maxThrust, float thrustMilitary,
+    float critAOAPos, float critAOANeg,
+    float minManeuverSpeed, float maxSpeed
+) {
+    props.emptyMass = emptyMass;
+    props.maxFuel = maxFuel;
+    props.wingArea = wingArea;
+    props.maxThrust = maxThrust;
+    props.thrustMilitary = thrustMilitary;
+    props.criticalAOAPositive = critAOAPos;
+    props.criticalAOANegative = critAOANeg;
+    props.minManeuverableSpeed = minManeuverSpeed;
+    props.maxSpeed = maxSpeed;
+    
+    // Update current mass and fuel
+    state.mass = emptyMass + fuel;
+    
+    // Recalculate some derived properties
+    float AR = props.wingSpan * props.wingSpan / props.wingArea;
+    props.K = 1.0f / (3.14159f * 0.8f * AR); // Oswald efficiency = 0.8
 }
 
 void FlightDynamics::setThrottle(float throttle) {

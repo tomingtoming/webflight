@@ -5,6 +5,7 @@ import { CameraView } from '@/renderer/CameraManager'
 import { getWasmModule } from '@/utils/wasm-loader'
 import { useKeyboardControls } from '@/hooks/useKeyboardControls'
 import { HUD } from './HUD'
+import { AircraftSelector } from './AircraftSelector'
 import type { FlightSimulation, AircraftState } from '@/types/wasm'
 import './FlightSimulation.css'
 
@@ -25,6 +26,7 @@ export function FlightSimulation() {
   const [showHUD, setShowHUD] = useState(true)
   const [currentCameraView, setCurrentCameraView] = useState<CameraView>(CameraView.CHASE)
   const lastKeyPressRef = useRef<{ [key: string]: number }>({})
+  const [currentAircraftType, setCurrentAircraftType] = useState<string>('f16')
   
   // Keyboard controls
   const keyboardState = useKeyboardControls(isRunning)
@@ -56,7 +58,7 @@ export function FlightSimulation() {
     sim.setAircraftType('F-16')
     
     // Add aircraft to renderer
-    renderer.addAircraft('player', new THREE.Vector3(0, 1000, 0))
+    renderer.addAircraft('player', new THREE.Vector3(0, 1000, 0), currentAircraftType)
     
     // Set initial camera position
     renderer.setCameraPosition(50, 1030, 50)
@@ -354,6 +356,40 @@ export function FlightSimulation() {
         <div className="camera-info">
           <p>Camera: {currentCameraView.toUpperCase()}</p>
         </div>
+        
+        {rendererRef.current && (
+          <AircraftSelector
+            aircraftManager={rendererRef.current.getAircraftManager()}
+            onAircraftSelected={async (aircraftId) => {
+              setCurrentAircraftType(aircraftId)
+              
+              // Update the simulation with new aircraft data
+              if (simulationRef.current && rendererRef.current) {
+                const aircraftManager = rendererRef.current.getAircraftManager()
+                const asset = aircraftManager.getAircraft(aircraftId)
+                
+                if (asset) {
+                  // Apply aircraft properties to simulation
+                  simulationRef.current.setAircraftProperties(
+                    asset.data.weightClean,
+                    asset.data.weightFuel,
+                    asset.data.wingArea,
+                    asset.data.thrustAfterburner,
+                    asset.data.thrustMilitary,
+                    asset.data.criticalAOAPositive,
+                    asset.data.criticalAOANegative,
+                    asset.data.minManeuverableSpeed,
+                    asset.data.maxSpeed
+                  )
+                  
+                  // Update the visual model
+                  // For now, we'll need to recreate the aircraft
+                  // In a real implementation, we'd swap the mesh
+                }
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   )
