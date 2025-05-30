@@ -67,3 +67,76 @@
   font-size: 13px;
   font-style: italic;
 }
+
+.aircraft-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.aircraft-selector-header h4 {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.toggle-all-button {
+  padding: 5px 10px;
+  background-color: rgba(33, 150, 243, 0.2);
+  border: 1px solid #2196F3;
+  border-radius: 4px;
+  color: #2196F3;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+}
+
+.toggle-all-button:hover {
+  background-color: rgba(33, 150, 243, 0.3);
+}
+
+.load-all-button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  color: #4CAF50;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.load-all-button:hover {
+  background-color: rgba(76, 175, 80, 0.3);
+}
+
+.load-all-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.aircraft-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.aircraft-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.aircraft-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.aircraft-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.aircraft-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

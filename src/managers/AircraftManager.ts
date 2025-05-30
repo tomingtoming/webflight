@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { AircraftData, AircraftDataParser } from '@/loaders/AircraftDataParser'
 import { DNMModel, DNMModelParser } from '@/loaders/DNMModelParser'
+import { AircraftListParser, AircraftListEntry } from '@/loaders/AircraftListParser'
 
 export interface AircraftAsset {
   id: string
@@ -170,6 +171,12 @@ export class AircraftManager {
     return mesh
   }
   
+  // Load aircraft list from aircraft.lst file
+  async loadAircraftList(): Promise<AircraftListEntry[]> {
+    const url = this.basePath + 'aircraft.lst'
+    return AircraftListParser.loadFromUrl(url)
+  }
+  
   // Load standard aircraft definitions
   async loadStandardAircraft(): Promise<void> {
     const standardAircraft: Array<{ id: string; definition: AircraftDefinition }> = [
@@ -212,5 +219,28 @@ export class AircraftManager {
         })
       )
     )
+  }
+  
+  // Load all aircraft from aircraft.lst
+  async loadAllAircraft(): Promise<void> {
+    try {
+      const aircraftList = await this.loadAircraftList()
+      console.log(`Found ${aircraftList.length} aircraft in aircraft.lst`)
+      
+      // Load aircraft in batches to avoid overwhelming the browser
+      const batchSize = 5
+      for (let i = 0; i < aircraftList.length; i += batchSize) {
+        const batch = aircraftList.slice(i, i + batchSize)
+        await Promise.all(
+          batch.map(entry => 
+            this.loadAircraft(entry.id, entry.definition).catch(error => {
+              console.error(`Failed to load aircraft ${entry.id}:`, error)
+            })
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Failed to load aircraft list:', error)
+    }
   }
 }

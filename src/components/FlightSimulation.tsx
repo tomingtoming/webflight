@@ -360,6 +360,7 @@ export function FlightSimulation() {
         {rendererRef.current && (
           <AircraftSelector
             aircraftManager={rendererRef.current.getAircraftManager()}
+            loadAllFromList={true}
             onAircraftSelected={async (aircraftId) => {
               setCurrentAircraftType(aircraftId)
               
