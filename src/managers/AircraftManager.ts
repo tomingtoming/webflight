@@ -75,6 +75,13 @@ export class AircraftManager {
     const model = DNMModelParser.parse(modelContent)
     const geometry = DNMModelParser.toThreeJS(model)
     
+    console.log(`Loaded aircraft ${id}:`, {
+      dataFile: definition.dataFile,
+      modelFile: definition.modelFile,
+      vertices: model.vertices.length,
+      polygons: model.polygons.length
+    })
+    
     // Create material
     const material = new THREE.MeshStandardMaterial({
       vertexColors: true,

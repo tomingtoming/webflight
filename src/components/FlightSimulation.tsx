@@ -384,8 +384,7 @@ export function FlightSimulation() {
                   )
                   
                   // Update the visual model
-                  // For now, we'll need to recreate the aircraft
-                  // In a real implementation, we'd swap the mesh
+                  await rendererRef.current.updateAircraftModel('player', aircraftId)
                 }
               }
             }}

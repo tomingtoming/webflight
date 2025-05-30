@@ -30,6 +30,8 @@ export class DNMModelParser {
       polygons: []
     }
     
+    console.log('Parsing DNM model, lines:', lines.length)
+    
     let currentMode = ''
     let currentPolygon: Partial<DNMPolygon> | null = null
     let currentColor = { r: 255, g: 255, b: 255 }
@@ -185,6 +187,12 @@ export class DNMModelParser {
     geometry.setIndex(indices)
     geometry.computeBoundingBox()
     geometry.computeBoundingSphere()
+    
+    console.log('Created geometry:', {
+      vertices: positions.length / 3,
+      triangles: indices.length / 3,
+      boundingBox: geometry.boundingBox
+    })
     
     return geometry
   }

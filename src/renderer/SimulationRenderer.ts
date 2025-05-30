@@ -192,6 +192,36 @@ export class SimulationRenderer extends WebGLRenderer {
     return this.aircraftManager
   }
   
+  public async updateAircraftModel(id: string, aircraftType: string): Promise<void> {
+    const aircraft = this.aircraft.get(id)
+    if (!aircraft) return
+    
+    // Load the aircraft asset if not already loaded
+    const asset = this.aircraftManager.getAircraft(aircraftType)
+    if (!asset) {
+      console.warn(`Aircraft asset ${aircraftType} not loaded`)
+      return
+    }
+    
+    // Remove old mesh
+    if (aircraft.mesh) {
+      this.getScene().remove(aircraft.mesh)
+      aircraft.mesh.geometry.dispose()
+      if (aircraft.mesh.material instanceof THREE.Material) {
+        aircraft.mesh.material.dispose()
+      }
+    }
+    
+    // Create new mesh from loaded model
+    const newMesh = this.aircraftManager.createAircraftMesh(asset)
+    newMesh.position.copy(aircraft.position)
+    newMesh.rotation.copy(aircraft.rotation)
+    
+    // Add to scene
+    this.getScene().add(newMesh)
+    aircraft.mesh = newMesh
+  }
+  
   public getAircraft(id: string): Aircraft | undefined {
     return this.aircraft.get(id)
   }
