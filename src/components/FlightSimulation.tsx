@@ -27,6 +27,7 @@ export function FlightSimulation() {
   const [currentCameraView, setCurrentCameraView] = useState<CameraView>(CameraView.CHASE)
   const lastKeyPressRef = useRef<{ [key: string]: number }>({})
   const [currentAircraftType, setCurrentAircraftType] = useState<string>('f16')
+  const [isRendererReady, setIsRendererReady] = useState(false)
   
   // Keyboard controls
   const keyboardState = useKeyboardControls(isRunning)
@@ -64,11 +65,15 @@ export function FlightSimulation() {
     renderer.setCameraPosition(50, 1030, 50)
     renderer.setCameraTarget(0, 1000, 0)
     
+    // Mark renderer as ready
+    setIsRendererReady(true)
+    
     return () => {
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current)
       }
       renderer.dispose()
+      setIsRendererReady(false)
     }
   }, [])
   
@@ -242,6 +247,41 @@ export function FlightSimulation() {
       <div className="flight-controls-panel">
         <h3>Flight Controls</h3>
         
+        {/* Temporarily move aircraft selector to top for debugging */}
+        {isRendererReady && rendererRef.current && (
+          <div style={{ marginBottom: '15px' }}>
+            <AircraftSelector
+              aircraftManager={rendererRef.current.getAircraftManager()}
+              loadAllFromList={false}
+              onAircraftSelected={async (aircraftId) => {
+                console.log('Aircraft selected:', aircraftId)
+                setCurrentAircraftType(aircraftId)
+                
+                if (simulationRef.current && rendererRef.current) {
+                  const aircraftManager = rendererRef.current.getAircraftManager()
+                  const asset = aircraftManager.getAircraft(aircraftId)
+                  
+                  if (asset) {
+                    simulationRef.current.setAircraftProperties(
+                      asset.data.weightClean,
+                      asset.data.weightFuel,
+                      asset.data.wingArea,
+                      asset.data.thrustAfterburner,
+                      asset.data.thrustMilitary,
+                      asset.data.criticalAOAPositive,
+                      asset.data.criticalAOANegative,
+                      asset.data.minManeuverableSpeed,
+                      asset.data.maxSpeed
+                    )
+                    
+                    await rendererRef.current.updateAircraftModel('player', aircraftId)
+                  }
+                }
+              }}
+            />
+          </div>
+        )}
+        
         <div className="control-buttons">
           <button 
             onClick={handleStartStop}
@@ -357,39 +397,6 @@ export function FlightSimulation() {
           <p>Camera: {currentCameraView.toUpperCase()}</p>
         </div>
         
-        {rendererRef.current && (
-          <AircraftSelector
-            aircraftManager={rendererRef.current.getAircraftManager()}
-            loadAllFromList={true}
-            onAircraftSelected={async (aircraftId) => {
-              setCurrentAircraftType(aircraftId)
-              
-              // Update the simulation with new aircraft data
-              if (simulationRef.current && rendererRef.current) {
-                const aircraftManager = rendererRef.current.getAircraftManager()
-                const asset = aircraftManager.getAircraft(aircraftId)
-                
-                if (asset) {
-                  // Apply aircraft properties to simulation
-                  simulationRef.current.setAircraftProperties(
-                    asset.data.weightClean,
-                    asset.data.weightFuel,
-                    asset.data.wingArea,
-                    asset.data.thrustAfterburner,
-                    asset.data.thrustMilitary,
-                    asset.data.criticalAOAPositive,
-                    asset.data.criticalAOANegative,
-                    asset.data.minManeuverableSpeed,
-                    asset.data.maxSpeed
-                  )
-                  
-                  // Update the visual model
-                  await rendererRef.current.updateAircraftModel('player', aircraftId)
-                }
-              }
-            }}
-          />
-        )}
       </div>
     </div>
   )
