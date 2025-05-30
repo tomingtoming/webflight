@@ -29,6 +29,7 @@
 
 .control-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
 }
@@ -154,4 +155,37 @@
 .control-help p {
   margin: 5px 0;
   color: rgba(255, 255, 255, 0.7);
+}
+
+.keyboard-controls-list {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.keyboard-controls-list kbd {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: monospace;
+  margin: 0 2px;
+}
+
+.hud-on-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.hud-on-button:hover {
+  background-color: #45a049;
+}
+
+.hud-off-button {
+  background-color: #666;
+  color: white;
+}
+
+.hud-off-button:hover {
+  background-color: #555;
 }

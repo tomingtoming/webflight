@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { SimulationRenderer } from '@/renderer/SimulationRenderer'
 import { getWasmModule } from '@/utils/wasm-loader'
+import { useKeyboardControls } from '@/hooks/useKeyboardControls'
+import { HUD } from './HUD'
 import type { FlightSimulation, AircraftState } from '@/types/wasm'
 import './FlightSimulation.css'
 
@@ -19,6 +21,10 @@ export function FlightSimulation() {
     elevator: 0,
     rudder: 0
   })
+  const [showHUD, setShowHUD] = useState(true)
+  
+  // Keyboard controls
+  const keyboardState = useKeyboardControls(isRunning)
   
   // Initialize simulation
   useEffect(() => {
@@ -61,7 +67,57 @@ export function FlightSimulation() {
     }
   }, [])
   
-  // Update controls
+  // Update controls from keyboard
+  useEffect(() => {
+    if (!isRunning || !keyboardState) return
+    
+    const updateInterval = setInterval(() => {
+      setControls(prevControls => {
+        let newControls = { ...prevControls }
+        
+        // Throttle
+        if (keyboardState.throttleUp) {
+          newControls.throttle = Math.min(1, prevControls.throttle + 0.02)
+        }
+        if (keyboardState.throttleDown) {
+          newControls.throttle = Math.max(0, prevControls.throttle - 0.02)
+        }
+        
+        // Pitch
+        if (keyboardState.pitchUp && !keyboardState.pitchDown) {
+          newControls.elevator = 0.5
+        } else if (keyboardState.pitchDown && !keyboardState.pitchUp) {
+          newControls.elevator = -0.5
+        } else {
+          newControls.elevator = 0
+        }
+        
+        // Roll
+        if (keyboardState.rollLeft && !keyboardState.rollRight) {
+          newControls.aileron = -0.5
+        } else if (keyboardState.rollRight && !keyboardState.rollLeft) {
+          newControls.aileron = 0.5
+        } else {
+          newControls.aileron = 0
+        }
+        
+        // Yaw
+        if (keyboardState.yawLeft && !keyboardState.yawRight) {
+          newControls.rudder = -0.5
+        } else if (keyboardState.yawRight && !keyboardState.yawLeft) {
+          newControls.rudder = 0.5
+        } else {
+          newControls.rudder = 0
+        }
+        
+        return newControls
+      })
+    }, 16) // 60 FPS
+    
+    return () => clearInterval(updateInterval)
+  }, [isRunning, keyboardState])
+  
+  // Update controls to simulation
   useEffect(() => {
     if (simulationRef.current) {
       simulationRef.current.setThrottle(controls.throttle)
@@ -72,6 +128,21 @@ export function FlightSimulation() {
       )
     }
   }, [controls])
+  
+  // Handle pause and HUD toggle keys
+  useEffect(() => {
+    const handleKeyPress = () => {
+      if (keyboardState.pause) {
+        setIsRunning(prev => !prev)
+      }
+      if (keyboardState.hudToggle) {
+        setShowHUD(prev => !prev)
+      }
+    }
+    
+    const checkKeyPress = setInterval(handleKeyPress, 100)
+    return () => clearInterval(checkKeyPress)
+  }, [keyboardState.pause, keyboardState.hudToggle])
   
   // Simulation loop
   useEffect(() => {
@@ -113,9 +184,9 @@ export function FlightSimulation() {
     }
   }, [isRunning])
   
-  const handleStartStop = () => {
+  const handleStartStop = useCallback(() => {
     setIsRunning(!isRunning)
-  }
+  }, [])
   
   const handleReset = () => {
     if (simulationRef.current && rendererRef.current) {
@@ -146,6 +217,7 @@ export function FlightSimulation() {
   return (
     <div className="flight-simulation-container">
       <canvas ref={canvasRef} className="flight-canvas" />
+      <HUD aircraftState={aircraftState} isEnabled={showHUD} />
       
       <div className="flight-controls-panel">
         <h3>Flight Controls</h3>
@@ -159,6 +231,12 @@ export function FlightSimulation() {
           </button>
           <button onClick={handleReset} className="reset-button">
             🔄 Reset
+          </button>
+          <button 
+            onClick={() => setShowHUD(!showHUD)}
+            className={showHUD ? 'hud-on-button' : 'hud-off-button'}
+          >
+            {showHUD ? '📊 HUD On' : '📊 HUD Off'}
           </button>
         </div>
         
@@ -228,7 +306,18 @@ export function FlightSimulation() {
         
         <div className="control-help">
           <h4>Keyboard Controls</h4>
-          <p>Coming soon: Arrow keys for control</p>
+          <div className="keyboard-controls-list">
+            <div><kbd>↑</kbd> / <kbd>W</kbd> - Pitch Down</div>
+            <div><kbd>↓</kbd> / <kbd>S</kbd> - Pitch Up</div>
+            <div><kbd>←</kbd> / <kbd>A</kbd> - Roll Left</div>
+            <div><kbd>→</kbd> / <kbd>D</kbd> - Roll Right</div>
+            <div><kbd>Q</kbd> / <kbd>,</kbd> - Yaw Left</div>
+            <div><kbd>E</kbd> / <kbd>.</kbd> - Yaw Right</div>
+            <div><kbd>Page Up</kbd> / <kbd>+</kbd> - Throttle Up</div>
+            <div><kbd>Page Down</kbd> / <kbd>-</kbd> - Throttle Down</div>
+            <div><kbd>Space</kbd> / <kbd>P</kbd> - Pause/Resume</div>
+            <div><kbd>H</kbd> - Toggle HUD</div>
+          </div>
         </div>
       </div>
     </div>
