@@ -14,20 +14,20 @@ describe('Aircraft Loading Integration Tests', () => {
       
       try {
         // Load a well-known aircraft
-        await aircraftManager.loadAircraft('f16')
+        await aircraftManager.loadStandardAircraft()
         
         const aircraft = aircraftManager.getAircraft('f16')
         expect(aircraft).toBeDefined()
-        expect(aircraft!.mainGeometry).toBeDefined()
+        expect(aircraft!.geometry).toBeDefined()
         
         console.log('F-16 aircraft loaded successfully:', {
-          hasMainGeometry: !!aircraft!.mainGeometry,
+          hasGeometry: !!aircraft!.geometry,
           hasCockpitGeometry: !!aircraft!.cockpitGeometry,
           hasCollisionGeometry: !!aircraft!.collisionGeometry
         })
         
         // Verify the geometry has reasonable properties
-        const geometry = aircraft!.mainGeometry!
+        const geometry = aircraft!.geometry!
         expect(geometry.attributes.position).toBeDefined()
         expect(geometry.attributes.position.count).toBeGreaterThan(0)
         
