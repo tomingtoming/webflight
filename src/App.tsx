@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { loadWasmModule } from './utils/wasm-loader'
+import { WasmTest } from './components/WasmTest'
 import './App.css'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
         console.log('Vector cross product test:', { x: cross.x, y: cross.y, z: cross.z })
         
       } catch (err) {
+        console.error('WASM initialization error:', err)
         setError(err instanceof Error ? err.message : 'Failed to initialize WASM')
       }
     }
@@ -67,6 +69,9 @@ function App() {
             <p>Build: {wasmInfo.buildInfo}</p>
           </>
         )}
+      </div>
+      <WasmTest />
+      <div className="status">
         <p>🚧 Flight Simulator Coming Soon</p>
       </div>
     </div>

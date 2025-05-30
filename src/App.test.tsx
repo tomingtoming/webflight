@@ -16,8 +16,15 @@ vi.mock('./utils/wasm-loader', () => ({
         heapSize: 16777216,
         stackSize: 65536
       }
-    })
-  })
+    }),
+    Vector3: class {
+      constructor(public x: number, public y: number, public z: number) {}
+      cross(_other: any) {
+        return { x: 0, y: 0, z: 1 };
+      }
+    }
+  }),
+  getWasmModule: vi.fn().mockReturnValue(null)
 }))
 
 describe('App', () => {
