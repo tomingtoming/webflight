@@ -9,7 +9,7 @@ export interface Aircraft {
   position: THREE.Vector3
   rotation: THREE.Euler
   velocity: THREE.Vector3
-  mesh?: THREE.Mesh
+  mesh?: THREE.Mesh | THREE.Group
 }
 
 export class SimulationRenderer extends WebGLRenderer {
@@ -35,7 +35,7 @@ export class SimulationRenderer extends WebGLRenderer {
   }
   
   public async addAircraft(id: string, position: THREE.Vector3, aircraftType?: string): Promise<Aircraft> {
-    let mesh: THREE.Mesh
+    let mesh: THREE.Mesh | THREE.Group
     
     // Try to use loaded aircraft model if available
     if (aircraftType) {
@@ -111,9 +111,23 @@ export class SimulationRenderer extends WebGLRenderer {
     const aircraft = this.aircraft.get(id)
     if (aircraft?.mesh) {
       this.getScene().remove(aircraft.mesh)
-      aircraft.mesh.geometry.dispose()
-      if (aircraft.mesh.material instanceof THREE.Material) {
-        aircraft.mesh.material.dispose()
+      
+      // Dispose geometry and materials
+      const disposeMesh = (obj: THREE.Object3D) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose()
+          if (obj.material instanceof THREE.Material) {
+            obj.material.dispose()
+          } else if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => mat.dispose())
+          }
+        }
+      }
+      
+      if (aircraft.mesh instanceof THREE.Group) {
+        aircraft.mesh.traverse(disposeMesh)
+      } else {
+        disposeMesh(aircraft.mesh)
       }
     }
     this.aircraft.delete(id)
@@ -206,9 +220,23 @@ export class SimulationRenderer extends WebGLRenderer {
     // Remove old mesh
     if (aircraft.mesh) {
       this.getScene().remove(aircraft.mesh)
-      aircraft.mesh.geometry.dispose()
-      if (aircraft.mesh.material instanceof THREE.Material) {
-        aircraft.mesh.material.dispose()
+      
+      // Dispose geometry and materials  
+      const disposeMesh = (obj: THREE.Object3D) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose()
+          if (obj.material instanceof THREE.Material) {
+            obj.material.dispose()
+          } else if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => mat.dispose())
+          }
+        }
+      }
+      
+      if (aircraft.mesh instanceof THREE.Group) {
+        aircraft.mesh.traverse(disposeMesh)
+      } else {
+        disposeMesh(aircraft.mesh)
       }
     }
     
