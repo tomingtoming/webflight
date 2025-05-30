@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 import { SimulationRenderer } from '@/renderer/SimulationRenderer'
+import { CameraView } from '@/renderer/CameraManager'
 import { getWasmModule } from '@/utils/wasm-loader'
 import { useKeyboardControls } from '@/hooks/useKeyboardControls'
 import { HUD } from './HUD'
@@ -22,6 +23,8 @@ export function FlightSimulation() {
     rudder: 0
   })
   const [showHUD, setShowHUD] = useState(true)
+  const [currentCameraView, setCurrentCameraView] = useState<CameraView>(CameraView.CHASE)
+  const lastKeyPressRef = useRef<{ [key: string]: number }>({})
   
   // Keyboard controls
   const keyboardState = useKeyboardControls(isRunning)
@@ -129,20 +132,35 @@ export function FlightSimulation() {
     }
   }, [controls])
   
-  // Handle pause and HUD toggle keys
+  // Handle pause, HUD toggle, and camera keys
   useEffect(() => {
     const handleKeyPress = () => {
-      if (keyboardState.pause) {
+      const now = Date.now()
+      const keyDelay = 300 // milliseconds between key presses
+      
+      if (keyboardState.pause && (!lastKeyPressRef.current.pause || now - lastKeyPressRef.current.pause > keyDelay)) {
         setIsRunning(prev => !prev)
+        lastKeyPressRef.current.pause = now
       }
-      if (keyboardState.hudToggle) {
+      if (keyboardState.hudToggle && (!lastKeyPressRef.current.hudToggle || now - lastKeyPressRef.current.hudToggle > keyDelay)) {
         setShowHUD(prev => !prev)
+        lastKeyPressRef.current.hudToggle = now
+      }
+      if (keyboardState.cameraNext && rendererRef.current && (!lastKeyPressRef.current.cameraNext || now - lastKeyPressRef.current.cameraNext > keyDelay)) {
+        rendererRef.current.nextCameraView()
+        setCurrentCameraView(rendererRef.current.getCurrentCameraView())
+        lastKeyPressRef.current.cameraNext = now
+      }
+      if (keyboardState.cameraPrev && rendererRef.current && (!lastKeyPressRef.current.cameraPrev || now - lastKeyPressRef.current.cameraPrev > keyDelay)) {
+        rendererRef.current.previousCameraView()
+        setCurrentCameraView(rendererRef.current.getCurrentCameraView())
+        lastKeyPressRef.current.cameraPrev = now
       }
     }
     
-    const checkKeyPress = setInterval(handleKeyPress, 100)
+    const checkKeyPress = setInterval(handleKeyPress, 50)
     return () => clearInterval(checkKeyPress)
-  }, [keyboardState.pause, keyboardState.hudToggle])
+  }, [keyboardState.pause, keyboardState.hudToggle, keyboardState.cameraNext, keyboardState.cameraPrev])
   
   // Simulation loop
   useEffect(() => {
@@ -168,8 +186,8 @@ export function FlightSimulation() {
       
       rendererRef.current!.updateAircraft('player', position, rotation, velocity)
       
-      // Follow aircraft with camera
-      rendererRef.current!.followAircraft('player', 50)
+      // Update camera to follow aircraft
+      rendererRef.current!.followAircraft('player', deltaTime)
       
       animationIdRef.current = requestAnimationFrame(animate)
     }
@@ -237,6 +255,17 @@ export function FlightSimulation() {
             className={showHUD ? 'hud-on-button' : 'hud-off-button'}
           >
             {showHUD ? '📊 HUD On' : '📊 HUD Off'}
+          </button>
+          <button 
+            onClick={() => {
+              if (rendererRef.current) {
+                rendererRef.current.nextCameraView()
+                setCurrentCameraView(rendererRef.current.getCurrentCameraView())
+              }
+            }}
+            className="camera-button"
+          >
+            📷 Camera
           </button>
         </div>
         
@@ -317,7 +346,13 @@ export function FlightSimulation() {
             <div><kbd>Page Down</kbd> / <kbd>-</kbd> - Throttle Down</div>
             <div><kbd>Space</kbd> / <kbd>P</kbd> - Pause/Resume</div>
             <div><kbd>H</kbd> - Toggle HUD</div>
+            <div><kbd>C</kbd> - Next Camera View</div>
+            <div><kbd>V</kbd> - Previous Camera View</div>
           </div>
+        </div>
+        
+        <div className="camera-info">
+          <p>Camera: {currentCameraView.toUpperCase()}</p>
         </div>
       </div>
     </div>

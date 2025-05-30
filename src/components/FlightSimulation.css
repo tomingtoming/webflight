@@ -189,3 +189,27 @@
 .hud-off-button:hover {
   background-color: #555;
 }
+
+.camera-button {
+  background-color: #9C27B0;
+  color: white;
+}
+
+.camera-button:hover {
+  background-color: #7B1FA2;
+}
+
+.camera-info {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.camera-info p {
+  margin: 0;
+  color: #4CAF50;
+}

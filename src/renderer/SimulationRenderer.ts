@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { WebGLRenderer } from './WebGLRenderer'
+import { CameraManager, CameraView } from './CameraManager'
 import type { YSFlightCore } from '@/types/wasm'
 
 export interface Aircraft {
@@ -14,6 +15,7 @@ export class SimulationRenderer extends WebGLRenderer {
   // private wasm: YSFlightCore | null = null // Will be used later
   private aircraft: Map<string, Aircraft> = new Map()
   private terrain?: THREE.Mesh
+  private cameraManager: CameraManager
   
   constructor(canvas: HTMLCanvasElement) {
     super(canvas, {
@@ -21,6 +23,8 @@ export class SimulationRenderer extends WebGLRenderer {
       shadows: true,
       maxFPS: 60
     })
+    
+    this.cameraManager = new CameraManager(this.getCamera())
   }
   
   public setWasmModule(_wasm: YSFlightCore): void {
@@ -139,21 +143,27 @@ export class SimulationRenderer extends WebGLRenderer {
     this.getScene().add(this.terrain)
   }
   
-  public followAircraft(id: string, distance: number = 50): void {
+  public followAircraft(id: string, deltaTime: number = 0.016): void {
     const aircraft = this.aircraft.get(id)
     if (!aircraft) return
     
-    // Calculate camera position behind and above the aircraft
-    const offset = new THREE.Vector3(0, 10, -distance)
-    offset.applyEuler(aircraft.rotation)
-    
-    const cameraPosition = aircraft.position.clone().add(offset)
-    this.setCameraPosition(cameraPosition.x, cameraPosition.y, cameraPosition.z)
-    this.setCameraTarget(
-      aircraft.position.x,
-      aircraft.position.y,
-      aircraft.position.z
-    )
+    this.cameraManager.update(aircraft.position, aircraft.rotation, deltaTime)
+  }
+  
+  public setCameraView(view: CameraView): void {
+    this.cameraManager.setView(view)
+  }
+  
+  public nextCameraView(): void {
+    this.cameraManager.nextView()
+  }
+  
+  public previousCameraView(): void {
+    this.cameraManager.previousView()
+  }
+  
+  public getCurrentCameraView(): CameraView {
+    return this.cameraManager.getCurrentView()
   }
   
   public getAircraft(id: string): Aircraft | undefined {
