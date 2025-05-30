@@ -3,7 +3,7 @@ import { AircraftManager } from './AircraftManager'
 import * as THREE from 'three'
 
 // Mock fetch
-global.fetch = vi.fn()
+globalThis.fetch = vi.fn()
 
 describe('AircraftManager', () => {
   let manager: AircraftManager
@@ -41,7 +41,7 @@ B
 2
 E`
 
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
@@ -71,7 +71,7 @@ E`
     })
 
     it('should cache loaded aircraft', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => 'DYNAMODEL\n'
@@ -90,7 +90,7 @@ E`
     })
 
     it('should handle loading errors gracefully', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         statusText: 'Not Found'
@@ -105,7 +105,7 @@ E`
     })
 
     it('should load optional files when provided', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => 'DYNAMODEL\n'
@@ -128,7 +128,7 @@ E`
 
   describe('createAircraftMesh', () => {
     it('should create mesh with proper coordinate transformation', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => `DYNAMODEL
@@ -163,7 +163,7 @@ E`
     })
 
     it('should create fallback mesh when no vertices', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => 'DYNAMODEL\n'
@@ -182,7 +182,7 @@ E`
     })
 
     it('should scale aircraft based on type', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => `DYNAMODEL
@@ -228,7 +228,7 @@ aircraft/cessna172r.dat aircraft/cessna172r.dnm aircraft/cessna172_collision.srf
 # This is a comment
 aircraft/b747.dat aircraft/b747.dnm aircraft/b747coll.srf aircraft/b747cockpit.srf aircraft/b747coarse.dnm`
 
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         text: async () => mockListContent
@@ -264,7 +264,7 @@ aircraft/a4.dat aircraft/a4.dnm
 aircraft/a5.dat aircraft/a5.dnm
 aircraft/a6.dat aircraft/a6.dnm`
 
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
@@ -285,7 +285,7 @@ aircraft/a6.dat aircraft/a6.dnm`
 
   describe('memory management', () => {
     it('should dispose geometries and materials when clearing cache', async () => {
-      const mockFetch = vi.mocked(global.fetch)
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockResolvedValue({
         ok: true,
         text: async () => `DYNAMODEL

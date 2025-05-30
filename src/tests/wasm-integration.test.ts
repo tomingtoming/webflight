@@ -2,16 +2,10 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { loadWasmModule } from '@/utils/wasm-loader'
 import type { YSFlightCore } from '@/types/wasm'
 
-describe('WASM Integration Tests', () => {
+describe.skipIf(!globalThis.document)('WASM Integration Tests', () => {
   let wasm: YSFlightCore
   
   beforeAll(async () => {
-    // Skip WASM tests in CI/Node environment
-    if (typeof WebAssembly === 'undefined' || !globalThis.document) {
-      console.warn('WASM tests skipped - requires browser environment')
-      return
-    }
-    
     try {
       wasm = await loadWasmModule()
     } catch (error) {
@@ -20,17 +14,12 @@ describe('WASM Integration Tests', () => {
   }, 30000) // Increase timeout to 30 seconds
   
   it('should load WASM module', () => {
-    if (typeof WebAssembly === 'undefined' || !globalThis.document) {
-      expect(true).toBe(true) // Skip test
-      return
-    }
-    
     expect(wasm).toBeDefined()
   })
   
   it('should provide version information', () => {
-    if (typeof WebAssembly === 'undefined' || !globalThis.document || !wasm) {
-      expect(true).toBe(true) // Skip test
+    if (!wasm) {
+      expect(wasm).toBeDefined()
       return
     }
     
@@ -42,8 +31,8 @@ describe('WASM Integration Tests', () => {
   })
   
   it('should create and use Vector3', () => {
-    if (typeof WebAssembly === 'undefined' || !globalThis.document || !wasm) {
-      expect(true).toBe(true) // Skip test
+    if (!wasm) {
+      expect(wasm).toBeDefined()
       return
     }
     
@@ -60,8 +49,8 @@ describe('WASM Integration Tests', () => {
   })
   
   it('should perform math operations', () => {
-    if (typeof WebAssembly === 'undefined' || !globalThis.document || !wasm) {
-      expect(true).toBe(true) // Skip test
+    if (!wasm) {
+      expect(wasm).toBeDefined()
       return
     }
     
@@ -72,8 +61,8 @@ describe('WASM Integration Tests', () => {
   })
   
   it('should use TestModule', () => {
-    if (typeof WebAssembly === 'undefined' || !globalThis.document || !wasm) {
-      expect(true).toBe(true) // Skip test
+    if (!wasm) {
+      expect(wasm).toBeDefined()
       return
     }
     

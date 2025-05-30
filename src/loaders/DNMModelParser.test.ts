@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { DNMModelParser } from './DNMModelParser'
 import * as THREE from 'three'
 
 // Mock fetch for SRF file loading tests
-global.fetch = vi.fn()
+globalThis.fetch = vi.fn()
 
 describe('DNMModelParser', () => {
   describe('parse', () => {
