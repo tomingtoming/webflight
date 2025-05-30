@@ -34,7 +34,7 @@ export class DNMModelParser {
     
     let currentMode = ''
     let currentPolygon: Partial<DNMPolygon> | null = null
-    let currentColor = { r: 255, g: 255, b: 255 }
+    let currentColor = { r: 128, g: 128, b: 128 } // Default gray color
     
     for (const line of lines) {
       if (!line) continue
@@ -56,6 +56,7 @@ export class DNMModelParser {
           break
           
         case 'SURF':
+        case 'Surf':
           currentMode = 'SURF'
           break
           
@@ -106,6 +107,18 @@ export class DNMModelParser {
       }
     }
     
+    // If no polygons were found, try to create a simple mesh from vertices
+    if (model.polygons.length === 0 && model.vertices.length > 0) {
+      console.log('No polygons found, creating triangulated mesh from vertices')
+      // Create triangles from sequential vertices (simple triangulation)
+      for (let i = 0; i < model.vertices.length - 2; i += 3) {
+        model.polygons.push({
+          vertices: [i, i + 1, i + 2],
+          color: { ...currentColor }
+        })
+      }
+    }
+    
     // Calculate normals for polygons
     for (const polygon of model.polygons) {
       if (polygon.vertices.length >= 3) {
@@ -113,12 +126,19 @@ export class DNMModelParser {
         const v1 = model.vertices[polygon.vertices[1]]
         const v2 = model.vertices[polygon.vertices[2]]
         
-        const edge1 = new THREE.Vector3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z)
-        const edge2 = new THREE.Vector3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z)
-        
-        polygon.normal = edge1.cross(edge2).normalize()
+        if (v0 && v1 && v2) {
+          const edge1 = new THREE.Vector3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z)
+          const edge2 = new THREE.Vector3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z)
+          
+          polygon.normal = edge1.cross(edge2).normalize()
+        }
       }
     }
+    
+    console.log('Parsed model:', {
+      vertices: model.vertices.length,
+      polygons: model.polygons.length
+    })
     
     return model
   }

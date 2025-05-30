@@ -167,6 +167,13 @@ export class AircraftManager {
   // Create a Three.js mesh from an aircraft asset
   createAircraftMesh(asset: AircraftAsset, useLOD: boolean = false): THREE.Mesh {
     const geometry = useLOD && asset.lodGeometry ? asset.lodGeometry : asset.geometry
+    
+    // Check if geometry has vertices
+    if (geometry.attributes.position.count === 0) {
+      console.warn(`No vertices in geometry for ${asset.id}, using fallback`)
+      return this.createFallbackMesh()
+    }
+    
     const mesh = new THREE.Mesh(geometry, asset.material)
     mesh.castShadow = true
     mesh.receiveShadow = true
@@ -174,6 +181,49 @@ export class AircraftManager {
     // Apply any necessary transformations based on aircraft data
     // YSFlight uses a different coordinate system, so we might need to rotate
     mesh.rotation.y = Math.PI // Face forward
+    
+    // Scale the mesh based on bounding box (some models may be too small/large)
+    geometry.computeBoundingBox()
+    const box = geometry.boundingBox!
+    const size = new THREE.Vector3()
+    box.getSize(size)
+    const maxDimension = Math.max(size.x, size.y, size.z)
+    if (maxDimension > 100 || maxDimension < 1) {
+      const scale = 20 / maxDimension // Target size of ~20 units
+      mesh.scale.setScalar(scale)
+    }
+    
+    return mesh
+  }
+  
+  private createFallbackMesh(): THREE.Mesh {
+    // Create simple aircraft geometry as fallback
+    const geometry = new THREE.ConeGeometry(2, 10, 8)
+    geometry.rotateX(Math.PI / 2)
+    
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x0000ff,
+      metalness: 0.7,
+      roughness: 0.3
+    })
+    
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    
+    // Add wings
+    const wingGeometry = new THREE.BoxGeometry(20, 0.5, 5)
+    const wings = new THREE.Mesh(wingGeometry, material)
+    wings.position.z = -2
+    wings.castShadow = true
+    mesh.add(wings)
+    
+    // Add tail
+    const tailGeometry = new THREE.BoxGeometry(0.5, 5, 3)
+    const tail = new THREE.Mesh(tailGeometry, material)
+    tail.position.set(0, 2, -4)
+    tail.castShadow = true
+    mesh.add(tail)
     
     return mesh
   }
